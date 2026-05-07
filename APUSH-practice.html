@@ -715,7 +715,7 @@ function startGameUI() {
 
 function startTimer() {
   if (timerInterval) clearInterval(timerInterval);
-  timeLeft = 7000;
+  timeLeft = 15000;
   document.getElementById('timer-text').innerText = "7.0s";
   document.getElementById('timer-bar').style.width = "100%";
   document.getElementById('timer-bar').className = "timer-fill";
@@ -817,7 +817,7 @@ function showRoundResults(correctAnswer) {
   document.getElementById('waiting-msg').style.display = 'none';
   
   if (myAnswer === correctAnswer) {
-      let earned = 60 + Math.floor((myLockedTime/7000) * 40);
+      let earned = 60 + Math.floor((myLockedTime/15000) * 40);
       if (buffs.manifestDestiny) { earned *= 2; buffs.manifestDestiny = false; showToast("Double Points!", "good"); }
       if (buffs.embargoAct) { earned = 0; buffs.embargoAct = false; showToast("Embargo Act negated points!", "bad"); }
       myScore += earned;
