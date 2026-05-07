@@ -162,11 +162,12 @@
       <li><span class="powerup-name">Abraham Lincoln (Cost: 50):</span> Eliminates 2 wrong answers (50/50).</li>
       <li><span class="powerup-name">George Washington (Cost: 150):</span> Eliminates ALL wrong answers (Auto-corrects).</li>
       <li><span class="powerup-name">Manifest Destiny (Cost: 50):</span> Earn double points if correct.</li>
-      <li><span class="powerup-name">Monroe Doctrine (Cost: 100):</span> Nullifies the very next attack against you.</li>
-      <li><span class="powerup-name">Trustbusting (Cost: 150):</span> Destroys 200 points from the current 1st Place player.</li>
-      <li><span class="powerup-name">Spoils System (Cost: 150):</span> Steals 100 points from a random opponent.</li>
-      <li><span class="powerup-name">Embargo Act (Cost: 200):</span> Forces an opponent to earn 0 points next question.</li>
-      <li><span class="powerup-name">Gilded Age (Cost: 50):</span> 50% chance to gain 150 pts, 50% chance to lose 100 pts.</li>
+      <li><span class="powerup-name">Monroe Doctrine (Cost: 100):</span> Nullifies the very next attack against you (Stacks!).</li>
+      <li><span class="powerup-name">Trustbusting (Cost: 150):</span> Destroys up to 200 points from the 1st Place player.</li>
+      <li><span class="powerup-name">Spoils System (Cost: 150):</span> Steals up to 100 points from ONE random opponent.</li>
+      <li><span class="powerup-name">Embargo Act (Cost: 200):</span> Forces ONE opponent to earn 0 points next question.</li>
+      <li><span class="powerup-name">Gilded Age (Cost: 75):</span> 50% chance to gain 200 pts, 50% chance to lose 100 pts.</li>
+      <li style="color:var(--rust); margin-top:5px;"><strong>Limit:</strong> You can only use <strong>3 powerups</strong> per round.</li>
     </ul>
   </div>
 </div>
@@ -223,7 +224,7 @@
            <button class="shop-item" onclick="buyPowerup('WASHINGTON', 150)"><strong>George Washington</strong><br>Auto-Correct<br><span>Cost: 150</span></button>
            <button class="shop-item" onclick="buyPowerup('MANIFEST', 50)"><strong>Manifest Destiny</strong><br>Double Points<br><span>Cost: 50</span></button>
            <button class="shop-item" onclick="buyPowerup('MONROE', 100)"><strong>Monroe Doctrine</strong><br>Block 1 Attack<br><span>Cost: 100</span></button>
-           <button class="shop-item" onclick="buyPowerup('GILDED', 50)"><strong>Gilded Age</strong><br>50/50 Gamble<br><span>Cost: 50</span></button>
+           <button class="shop-item" onclick="buyPowerup('GILDED', 75)"><strong>Gilded Age</strong><br>Win 200/Lose 100<br><span>Cost: 75</span></button>
            <button class="shop-item" onclick="buyPowerup('TRUSTBUSTING', 150)"><strong>Trustbusting</strong><br>Nuke 1st Place<br><span>Cost: 150</span></button>
            <button class="shop-item" onclick="buyPowerup('SPOILS', 150)"><strong>Spoils System</strong><br>Steal 100 Pts<br><span>Cost: 150</span></button>
            <button class="shop-item" onclick="buyPowerup('EMBARGO', 200)"><strong>Embargo Act</strong><br>Opponent gets 0<br><span>Cost: 200</span></button>
@@ -257,21 +258,32 @@ let myName = "Player";
 let currentQuestions = [];
 let currentIndex = 0;
 let myScore = 0;
-let myCorrectAnswers = 0; // Tracks SP correct answers
+let myCorrectAnswers = 0; 
 let currentLeader = null; 
 
 let useTimer = true;
-let baseTimerDuration = 20; // seconds
+let baseTimerDuration = 20;
 let timeLeft = 20000;
 let timerInterval = null;
 let roundTimerInterval = null;
 let myLockedTime = 0;
 let myAnswer = null;
 
-let buffs = { manifestDestiny: false, monroeDoctrine: false, abrahamLincoln: false, georgeWashington: false, embargoAct: false };
+let buffs = { manifestDestiny: false, monroeDoctrine: 0, abrahamLincoln: false, georgeWashington: false, embargoAct: false };
 let peer = null, conn = null, isHost = false, isMultiplayer = false;
 let hostAnswer = null;
 let players = {}; 
+let powerupsUsedThisRound = 0;
+
+// WebRTC Config for much better connection reliability across networks
+const peerConfig = {
+    config: {
+        'iceServers': [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+    }
+};
 
 function showScreen(screenId) {
   document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active'));
@@ -348,9 +360,15 @@ function generateRoomCode() {
 function startHosting() {
   mountSettings('host-settings-target'); showScreen('screen-mp-host');
   document.getElementById('room-code').innerText = "....";
-  peer = new Peer(generateRoomCode()); isHost = true;
+  peer = new Peer(generateRoomCode(), peerConfig);
+  isHost = true;
   
   peer.on('open', (id) => { document.getElementById('room-code').innerText = id; updateHostRoster(); });
+  peer.on('error', (err) => {
+      console.error(err);
+      showToast("Network Error: " + err.type, "bad");
+  });
+
   peer.on('connection', (connection) => {
     connection.on('data', (msg) => {
       if (msg.type === 'JOIN') {
@@ -365,11 +383,16 @@ function startHosting() {
         processAttackFromClient(connection.peer, msg.attackType);
       }
       else if (msg.type === 'ATTACK_SUCCESS') {
-        if (msg.attacker === 'HOST') { myScore += msg.amount; updateStats(); showToast(`You successfully stole ${msg.amount} pts!`, 'good'); }
+        if (msg.attacker === 'HOST') { 
+            myScore += msg.amount; updateStats(); 
+            showToast(`You successfully stole ${msg.amount} pts!`, 'good'); 
+            renderDynamicLeaderboard();
+        }
         else if (players[msg.attacker]) {
             players[msg.attacker].score += msg.amount;
             players[msg.attacker].conn.send({ type: 'TOAST', msg: `You successfully stole ${msg.amount} pts!`, t: 'good' });
             players[msg.attacker].conn.send({ type: 'SCORE_SYNC', score: players[msg.attacker].score });
+            renderDynamicLeaderboard();
         }
       }
       else if (msg.type === 'SCORE_SYNC') {
@@ -411,8 +434,20 @@ function joinGame() {
   if (code.length !== 4) return alert("Invalid code.");
   document.getElementById('join-btn').disabled = true;
   document.getElementById('join-status-msg').innerText = "Connecting...";
-  peer = new Peer();
+  peer = new Peer(peerConfig);
+  
   peer.on('open', () => { conn = peer.connect(code); isHost = false; setupClientConnection(); });
+  peer.on('error', (err) => {
+      console.error(err);
+      if (err.type === 'peer-unavailable') {
+          showToast("Room not found. Check the code.", "bad");
+          document.getElementById('join-btn').disabled = false;
+          document.getElementById('join-status-msg').innerText = "Room not found.";
+      } else {
+          showToast("Network Error: " + err.type, "bad");
+          document.getElementById('join-status-msg').innerText = "Connection failed.";
+      }
+  });
 }
 
 function setupClientConnection() {
@@ -462,17 +497,27 @@ function quitToMenu() {
 }
 
 function buyPowerup(type, cost) {
+  if (powerupsUsedThisRound >= 3) return showToast("Limit reached: 3 powerups per round!", "bad");
   if (myScore < cost) return showToast("Not enough points!", "bad");
-  myScore -= cost; updateStats();
+  
+  myScore -= cost; 
+  powerupsUsedThisRound++;
+  updateStats();
   
   if (type === 'LINCOLN') { buffs.abrahamLincoln = true; showToast("Purchased Abraham Lincoln (50/50)!"); }
   if (type === 'WASHINGTON') { buffs.georgeWashington = true; showToast("Purchased George Washington (Auto-correct)!"); }
   if (type === 'MANIFEST') { buffs.manifestDestiny = true; showToast("Purchased Manifest Destiny!"); }
-  if (type === 'MONROE') { buffs.monroeDoctrine = true; showToast("Purchased Monroe Doctrine!"); }
+  if (type === 'MONROE') { buffs.monroeDoctrine++; showToast(`Purchased Monroe Doctrine (Stacks: ${buffs.monroeDoctrine})!`); }
   
   if (type === 'GILDED') {
-    if (Math.random() > 0.5) { myScore += 150; showToast("Gilded Age: Won 150 points!", "good"); }
-    else { myScore -= 100; showToast("Panic of 1893: Lost 100 points!", "bad"); }
+    if (Math.random() > 0.5) { 
+        myScore += 200; 
+        showToast("Gilded Age: Won 200 points!", "good"); 
+    } else { 
+        let lost = Math.min(myScore, 100);
+        myScore -= lost; 
+        showToast(`Panic of 1893: Lost ${lost} points!`, "bad"); 
+    }
     updateStats();
   }
 
@@ -481,8 +526,7 @@ function buyPowerup(type, cost) {
     showToast(`Launched ${type} attack!`);
     
     if (isHost) {
-      broadcast({ type: 'ATTACK_RECEIVED', attackType: type, attacker: 'HOST' });
-      handleIncomingAttack(type, 'HOST');
+      processAttackFromHost(type);
     }
     else conn.send({ type: 'ATTACK', attackType: type });
   }
@@ -491,25 +535,59 @@ function buyPowerup(type, cost) {
   else renderDynamicLeaderboard();
 }
 
+function processAttackFromHost(type) {
+  let attackerId = 'HOST';
+  if (type === 'SPOILS' || type === 'EMBARGO') {
+      let targetIds = Object.keys(players);
+      if (targetIds.length > 0) {
+          let target = targetIds[Math.floor(Math.random() * targetIds.length)];
+          players[target].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
+      } else {
+          showToast("No opponents to target!", "bad");
+      }
+  } else {
+      Object.keys(players).forEach(id => {
+          if (players[id].conn) players[id].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
+      });
+  }
+}
+
 function processAttackFromClient(attackerId, type) {
-  Object.keys(players).forEach(id => {
-    if (id !== attackerId && players[id].conn) players[id].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
-  });
-  handleIncomingAttack(type, attackerId);
+  if (type === 'SPOILS' || type === 'EMBARGO') {
+      let targetIds = Object.keys(players).filter(id => id !== attackerId);
+      targetIds.push('HOST');
+      if (targetIds.length > 0) {
+          let target = targetIds[Math.floor(Math.random() * targetIds.length)];
+          if (target === 'HOST') {
+              handleIncomingAttack(type, attackerId);
+          } else {
+              players[target].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
+          }
+      }
+  } else {
+      Object.keys(players).forEach(id => {
+          if (id !== attackerId && players[id].conn) {
+              players[id].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
+          }
+      });
+      handleIncomingAttack(type, attackerId);
+  }
 }
 
 function handleIncomingAttack(type, attackerId) {
-  if (buffs.monroeDoctrine) {
-    buffs.monroeDoctrine = false; showToast("Monroe Doctrine blocked an attack!", "good"); return;
+  if (buffs.monroeDoctrine > 0) {
+    buffs.monroeDoctrine--; 
+    showToast(`Monroe Doctrine blocked an attack! (${buffs.monroeDoctrine} left)`, "good"); 
+    return;
   }
 
   let damageTaken = 0;
   if (type === 'TRUSTBUSTING') {
-    if (myName === currentLeader) { damageTaken = 200; showToast("Trustbusted! You lost 200 points.", "bad"); }
+    if (myName === currentLeader) { damageTaken = Math.min(myScore, 200); showToast(`Trustbusted! You lost ${damageTaken} points.`, "bad"); }
   } else if (type === 'SPOILS') {
-    if (Math.random() > 0.5) { damageTaken = 100; showToast("Spoils System! You were robbed of 100 points.", "bad"); }
+    damageTaken = Math.min(myScore, 100); showToast(`Spoils System! You were robbed of ${damageTaken} points.`, "bad");
   } else if (type === 'EMBARGO') {
-    if (Math.random() > 0.5) { buffs.embargoAct = true; showToast("Embargo Act! Next question gives 0 points.", "bad"); }
+    buffs.embargoAct = true; showToast("Embargo Act! Next question gives 0 points.", "bad");
   }
 
   if (damageTaken > 0) {
@@ -519,10 +597,11 @@ function handleIncomingAttack(type, attackerId) {
         players[attackerId].score += damageTaken;
         players[attackerId].conn.send({ type: 'TOAST', msg: `Stole ${damageTaken} pts!`, t: 'good' });
         players[attackerId].conn.send({ type: 'SCORE_SYNC', score: players[attackerId].score });
+        renderDynamicLeaderboard();
       }
     } else {
       conn.send({ type: 'ATTACK_SUCCESS', amount: damageTaken, attacker: attackerId });
-      conn.send({ type: 'SCORE_SYNC', score: myScore }); // Update host about my lost points
+      conn.send({ type: 'SCORE_SYNC', score: myScore }); 
     }
   }
 }
@@ -534,7 +613,7 @@ function startGameUI() {
       document.querySelector('.shop-container').style.display = 'block';
   } else {
       document.getElementById('chip-players-connected').classList.add('hidden');
-      document.querySelector('.shop-container').style.display = 'none'; // Hide shop in SP
+      document.querySelector('.shop-container').style.display = 'none'; 
   }
   
   if (!useTimer) document.getElementById('timer-wrapper').style.display = 'none';
@@ -542,8 +621,7 @@ function startGameUI() {
 
   currentIndex = 0; myScore = 0; myCorrectAnswers = 0; hostAnswer = null;
   
-  // reset buffs
-  buffs = { manifestDestiny: false, monroeDoctrine: false, abrahamLincoln: false, georgeWashington: false, embargoAct: false };
+  buffs = { manifestDestiny: false, monroeDoctrine: 0, abrahamLincoln: false, georgeWashington: false, embargoAct: false };
   loadQuestion();
 }
 
@@ -563,7 +641,6 @@ function startTimer() {
     document.getElementById('timer-text').innerText = display + "s";
     document.getElementById('timer-bar').style.width = (Math.max(0, timeLeft) / (baseTimerDuration * 10)) + "%";
     
-    // Warning at 25% time remaining
     if (timeLeft <= (baseTimerDuration * 1000 * 0.25)) document.getElementById('timer-bar').classList.add('warning');
     
     if (timeLeft <= 0) {
@@ -651,6 +728,8 @@ function checkAllAnswered() {
 }
 
 function showRoundResults(correctAnswer) {
+  powerupsUsedThisRound = 0; // Reset shop limit
+
   if (timerInterval) clearInterval(timerInterval); 
   document.getElementById('waiting-msg').style.display = 'none';
   
@@ -663,7 +742,7 @@ function showRoundResults(correctAnswer) {
       if (buffs.manifestDestiny) { earned *= 2; buffs.manifestDestiny = false; showToast("Double Points!", "good"); }
       if (buffs.embargoAct) { earned = 0; buffs.embargoAct = false; showToast("Embargo Act negated points!", "bad"); }
       myScore += earned;
-      myCorrectAnswers++; // Tracks Single Player Correct Answers
+      myCorrectAnswers++;
   }
   updateStats();
   
@@ -676,10 +755,8 @@ function showRoundResults(correctAnswer) {
   if (!isHost && isMultiplayer) conn.send({ type: 'SCORE_SYNC', score: myScore });
   else if (isHost) setTimeout(renderDynamicLeaderboard, 500);
   
-  // 2 Second Delay to show the correct answer before proceeding
   setTimeout(() => {
       if (!isMultiplayer) {
-          // Skip the leaderboard shop modal in Single Player and go instantly to next question
           closeLeaderboardAndNext();
       } else {
           document.getElementById('lb-timer').innerText = "5";
