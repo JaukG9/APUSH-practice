@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>APUSH Match — Ultimate Powerup Edition</title>
+<title>APUSH Practice</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
 <script src="questions.js"></script>
@@ -112,7 +112,7 @@
 
 <div id="toast-container"></div>
 
-<h1>APUSH Match — Powerup Edition</h1>
+<h1>APUSH Practice</h1>
 
 <div id="game-settings-module" class="hidden">
   <div class="menu-section">
@@ -159,8 +159,8 @@
     <p><strong>The Timer:</strong> If enabled, faster correct answers grant more points (60 to 100). Wrong answers yield 0. If disabled, correct answers give a flat 100 points.</p>
     <p><strong>The Shop:</strong> Between rounds, you have 5 seconds to buy powerups using your score points!</p>
     <ul>
-      <li><span class="powerup-name">Mr. Smith (Cost: 50):</span> Eliminates 2 wrong answers (50/50).</li>
-      <li><span class="powerup-name">Mr. Wendt (Cost: 150):</span> Eliminates ALL wrong answers (Auto-corrects).</li>
+      <li><span class="powerup-name">Abraham Lincoln (Cost: 50):</span> Eliminates 2 wrong answers (50/50).</li>
+      <li><span class="powerup-name">George Washington (Cost: 150):</span> Eliminates ALL wrong answers (Auto-corrects).</li>
       <li><span class="powerup-name">Manifest Destiny (Cost: 50):</span> Earn double points if correct.</li>
       <li><span class="powerup-name">Monroe Doctrine (Cost: 100):</span> Nullifies the very next attack against you.</li>
       <li><span class="powerup-name">Trustbusting (Cost: 150):</span> Destroys 200 points from the current 1st Place player.</li>
@@ -197,7 +197,7 @@
   <h4>Players in Room:</h4>
   <div class="player-roster" id="host-roster">Loading...</div>
   <button class="big-btn" id="start-mp-btn" onclick="hostStartGame()">Start Match Now</button>
-  <button class="big-btn danger" onclick="location.reload()">Cancel Lobby</button>
+  <button class="big-btn danger" onclick="quitToMenu()">Cancel Lobby</button>
 </div>
 
 <div class="container app-screen" id="screen-mp-join">
@@ -207,6 +207,7 @@
   <h4>Players in Room:</h4>
   <div class="player-roster" id="join-roster">Loading...</div>
   <p>Waiting for the host to select settings and start the match...</p>
+  <button class="big-btn danger" style="margin-top:20px;" onclick="quitToMenu()">Leave Match</button>
 </div>
 
 <div class="container app-screen" id="screen-quiz">
@@ -218,8 +219,8 @@
     <div class="shop-container">
        <h4>Powerup Shop</h4>
        <div class="shop-grid">
-           <button class="shop-item" onclick="buyPowerup('SMITH', 50)"><strong>Mr. Smith</strong><br>Elim. 2 Wrong<br><span>Cost: 50</span></button>
-           <button class="shop-item" onclick="buyPowerup('WENDT', 150)"><strong>Mr. Wendt</strong><br>Auto-Correct<br><span>Cost: 150</span></button>
+           <button class="shop-item" onclick="buyPowerup('LINCOLN', 50)"><strong>Abraham Lincoln</strong><br>Elim. 2 Wrong<br><span>Cost: 50</span></button>
+           <button class="shop-item" onclick="buyPowerup('WASHINGTON', 150)"><strong>George Washington</strong><br>Auto-Correct<br><span>Cost: 150</span></button>
            <button class="shop-item" onclick="buyPowerup('MANIFEST', 50)"><strong>Manifest Destiny</strong><br>Double Points<br><span>Cost: 50</span></button>
            <button class="shop-item" onclick="buyPowerup('MONROE', 100)"><strong>Monroe Doctrine</strong><br>Block 1 Attack<br><span>Cost: 100</span></button>
            <button class="shop-item" onclick="buyPowerup('GILDED', 50)"><strong>Gilded Age</strong><br>50/50 Gamble<br><span>Cost: 50</span></button>
@@ -239,13 +240,15 @@
   <div class="question-box" id="question-text">Loading question...</div>
   <div class="options-grid" id="options-grid"></div>
   <div class="overlay-msg" id="waiting-msg">Waiting for other players...</div>
+  
+  <button class="big-btn danger" style="padding: 10px; font-size: 1rem; margin-top: 25px;" onclick="quitToMenu()">Quit to Main Menu</button>
 </div>
 
 <div class="container app-screen" id="screen-results">
   <h2>Match Complete</h2>
   <div class="grade" id="final-outcome">Victory!</div>
   <div class="lb-list" id="final-lb-container" style="margin: 0 auto 2rem auto;"></div>
-  <button class="big-btn" onclick="location.reload()">Return to Main Menu</button>
+  <button class="big-btn" onclick="quitToMenu()">Return to Main Menu</button>
 </div>
 
 <script>
@@ -264,7 +267,7 @@ let roundTimerInterval = null;
 let myLockedTime = 0;
 let myAnswer = null;
 
-let buffs = { manifestDestiny: false, monroeDoctrine: false, mrSmith: false, mrWendt: false, embargoAct: false };
+let buffs = { manifestDestiny: false, monroeDoctrine: false, abrahamLincoln: false, georgeWashington: false, embargoAct: false };
 let peer = null, conn = null, isHost = false, isMultiplayer = false;
 let hostAnswer = null;
 let players = {}; 
@@ -438,15 +441,31 @@ function setupClientConnection() {
     else if (msg.type === 'TOAST') { showToast(msg.msg, msg.t); }
     else if (msg.type === 'SCORE_SYNC') { myScore = msg.score; updateStats(); }
   });
-  conn.on('close', () => { alert("Host disconnected!"); location.reload(); });
+  conn.on('close', () => { quitToMenu(); alert("Host disconnected! Returning to menu."); });
+}
+
+function quitToMenu() {
+  if (confirm("Are you sure you want to quit the match and return to the main menu?")) {
+    if (timerInterval) clearInterval(timerInterval);
+    if (roundTimerInterval) clearInterval(roundTimerInterval);
+    if (conn) { conn.close(); conn = null; }
+    if (peer) { peer.destroy(); peer = null; }
+    isMultiplayer = false;
+    isHost = false;
+    players = {};
+    document.getElementById('leaderboard-modal').style.display = 'none';
+    document.getElementById('join-btn').disabled = false;
+    document.getElementById('join-status-msg').innerText = "";
+    showScreen('screen-main-menu');
+  }
 }
 
 function buyPowerup(type, cost) {
   if (myScore < cost) return showToast("Not enough points!", "bad");
   myScore -= cost; updateStats();
   
-  if (type === 'SMITH') { buffs.mrSmith = true; showToast("Purchased Mr. Smith (50/50)!"); }
-  if (type === 'WENDT') { buffs.mrWendt = true; showToast("Purchased Mr. Wendt (Auto-correct)!"); }
+  if (type === 'LINCOLN') { buffs.abrahamLincoln = true; showToast("Purchased Abraham Lincoln (50/50)!"); }
+  if (type === 'WASHINGTON') { buffs.georgeWashington = true; showToast("Purchased George Washington (Auto-correct)!"); }
   if (type === 'MANIFEST') { buffs.manifestDestiny = true; showToast("Purchased Manifest Destiny!"); }
   if (type === 'MONROE') { buffs.monroeDoctrine = true; showToast("Purchased Monroe Doctrine!"); }
   
@@ -516,6 +535,9 @@ function startGameUI() {
   else document.getElementById('timer-wrapper').style.display = 'block';
 
   currentIndex = 0; myScore = 0; hostAnswer = null;
+  
+  // reset buffs
+  buffs = { manifestDestiny: false, monroeDoctrine: false, abrahamLincoln: false, georgeWashington: false, embargoAct: false };
   loadQuestion();
 }
 
@@ -573,11 +595,11 @@ function loadQuestion() {
     btns.push(btn);
   });
 
-  if (buffs.mrWendt) {
-    buffs.mrWendt = false;
+  if (buffs.georgeWashington) {
+    buffs.georgeWashington = false;
     btns.forEach(b => { if (b.innerText !== q.answer) b.classList.add('eliminated'); });
-  } else if (buffs.mrSmith) {
-    buffs.mrSmith = false;
+  } else if (buffs.abrahamLincoln) {
+    buffs.abrahamLincoln = false;
     let wrongs = btns.filter(b => b.innerText !== q.answer);
     wrongs[0].classList.add('eliminated');
     wrongs[1].classList.add('eliminated');
@@ -629,7 +651,6 @@ function showRoundResults(correctAnswer) {
   if (myAnswer === correctAnswer) {
       let earned = 100;
       if (useTimer) {
-          // Scale from 60 to 100 based on speed
           earned = 60 + Math.floor((myLockedTime / (baseTimerDuration * 1000)) * 40);
       }
       
@@ -648,7 +669,7 @@ function showRoundResults(correctAnswer) {
   if (!isHost && isMultiplayer) conn.send({ type: 'SCORE_SYNC', score: myScore });
   else if (isHost) setTimeout(renderDynamicLeaderboard, 500);
   
-  // 2 Second Delay so users can see the correct answer
+  // 2 Second Delay to show the correct answer before proceeding to leaderboard/shop
   setTimeout(() => {
       document.getElementById('lb-timer').innerText = "5";
       document.getElementById('leaderboard-modal').style.display = 'flex';
