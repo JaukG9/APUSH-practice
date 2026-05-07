@@ -152,11 +152,11 @@
 
   <div class="tutorial-box">
     <h3>How to Play & Powerups</h3>
-    <p><strong>The Timer:</strong> You have <b>7 seconds</b> per question. Faster correct answers grant more points (60 to 100). Wrong answers yield 0.</p>
+    <p><strong>The Timer:</strong> You have <b>15 seconds</b> per question. Faster correct answers grant more points (60 to 100). Wrong answers yield 0.</p>
     <p><strong>The Shop:</strong> Between rounds, you have 5 seconds to buy powerups using your score points!</p>
     <ul>
       <li><span class="powerup-name">Mr. Smith (Cost: 50):</span> Eliminates 2 wrong answers (50/50).</li>
-      <li><span class="powerup-name">Mr. Wendt (Cost: 150):</span> Eliminates ALL wrong answers (Auto-corrects).</li>
+      <li><span class="powerup-name">Mr. Wendt (Cost: 75):</span> Eliminates ALL wrong answers (Auto-corrects).</li>
       <li><span class="powerup-name">Manifest Destiny (Cost: 50):</span> Earn double points if correct.</li>
       <li><span class="powerup-name">Monroe Doctrine (Cost: 100):</span> Nullifies the very next attack against you.</li>
       <li><span class="powerup-name">Trustbusting (Cost: 150):</span> Destroys 200 points from the current 1st Place player.</li>
@@ -226,7 +226,7 @@
     </div>
   </div>
 
-  <div class="timer-container"><div class="timer-fill" id="timer-bar"></div><div class="timer-text" id="timer-text">7.0s</div></div>
+  <div class="timer-container"><div class="timer-fill" id="timer-bar"></div><div class="timer-text" id="timer-text">15.0s</div></div>
   <div class="stats-bar">
     <span class="chip" id="chip-remaining">Question: 1</span>
     <span class="chip player-score" id="chip-score">Score: 0</span>
@@ -473,7 +473,7 @@ let currentIndex = 0;
 let myScore = 0;
 let currentLeader = null; 
 
-let timeLeft = 7000;
+let timeLeft = 15000;
 let timerInterval = null;
 let roundTimerInterval = null;
 let myLockedTime = 0;
