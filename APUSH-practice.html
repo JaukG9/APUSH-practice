@@ -152,7 +152,7 @@
 
   <div class="tutorial-box">
     <h3>How to Play & Powerups</h3>
-    <p><strong>The Timer:</strong> You have <b>15 seconds</b> per question. Faster correct answers grant more points (60 to 100). Wrong answers yield 0.</p>
+    <p><strong>The Timer:</strong> You have <b>20 seconds</b> per question. Faster correct answers grant more points (60 to 100). Wrong answers yield 0.</p>
     <p><strong>The Shop:</strong> Between rounds, you have 5 seconds to buy powerups using your score points!</p>
     <ul>
       <li><span class="powerup-name">Mr. Smith (Cost: 50):</span> Eliminates 2 wrong answers (50/50).</li>
@@ -226,7 +226,7 @@
     </div>
   </div>
 
-  <div class="timer-container"><div class="timer-fill" id="timer-bar"></div><div class="timer-text" id="timer-text">15.0s</div></div>
+  <div class="timer-container"><div class="timer-fill" id="timer-bar"></div><div class="timer-text" id="timer-text">20.0s</div></div>
   <div class="stats-bar">
     <span class="chip" id="chip-remaining">Question: 1</span>
     <span class="chip player-score" id="chip-score">Score: 0</span>
@@ -473,7 +473,7 @@ let currentIndex = 0;
 let myScore = 0;
 let currentLeader = null; 
 
-let timeLeft = 15000;
+let timeLeft = 20000;
 let timerInterval = null;
 let roundTimerInterval = null;
 let myLockedTime = 0;
@@ -715,8 +715,8 @@ function startGameUI() {
 
 function startTimer() {
   if (timerInterval) clearInterval(timerInterval);
-  timeLeft = 15000;
-  document.getElementById('timer-text').innerText = "15.0s";
+  timeLeft = 20000;
+  document.getElementById('timer-text').innerText = "20.0s";
   document.getElementById('timer-bar').style.width = "100%";
   document.getElementById('timer-bar').className = "timer-fill";
 
@@ -725,7 +725,7 @@ function startTimer() {
     
     let display = (Math.max(0, timeLeft) / 1000).toFixed(1);
     document.getElementById('timer-text').innerText = display + "s";
-    document.getElementById('timer-bar').style.width = (Math.max(0, timeLeft) / 150) + "%";
+    document.getElementById('timer-bar').style.width = (Math.max(0, timeLeft) / 200) + "%";
     if (timeLeft <= 5000) document.getElementById('timer-bar').classList.add('warning');
     
     if (timeLeft <= 0) {
@@ -817,7 +817,7 @@ function showRoundResults(correctAnswer) {
   document.getElementById('waiting-msg').style.display = 'none';
   
   if (myAnswer === correctAnswer) {
-      let earned = 60 + Math.floor((myLockedTime/15000) * 40);
+      let earned = 60 + Math.floor((myLockedTime/20000) * 40);
       if (buffs.manifestDestiny) { earned *= 2; buffs.manifestDestiny = false; showToast("Double Points!", "good"); }
       if (buffs.embargoAct) { earned = 0; buffs.embargoAct = false; showToast("Embargo Act negated points!", "bad"); }
       myScore += earned;
@@ -833,30 +833,33 @@ function showRoundResults(correctAnswer) {
   if (!isHost && isMultiplayer) conn.send({ type: 'SCORE_SYNC', score: myScore });
   else if (isHost) setTimeout(renderDynamicLeaderboard, 500);
   
-  document.getElementById('lb-timer').innerText = "5";
-  document.getElementById('leaderboard-modal').style.display = 'flex';
-  
-  if (!isMultiplayer || isHost) {
-      let countdown = 5;
-      if (roundTimerInterval) clearInterval(roundTimerInterval);
-      roundTimerInterval = setInterval(() => {
-        countdown--;
-        document.getElementById('lb-timer').innerText = countdown;
-        if (countdown <= 0) {
-          clearInterval(roundTimerInterval);
-          if (isMultiplayer) broadcast({ type: 'NEXT_QUESTION' });
-          closeLeaderboardAndNext();
-        }
-      }, 1000);
-  } else {
-      let countdown = 5;
-      if (roundTimerInterval) clearInterval(roundTimerInterval);
-      roundTimerInterval = setInterval(() => {
-        countdown--;
-        document.getElementById('lb-timer').innerText = countdown;
-        if (countdown <= 0) clearInterval(roundTimerInterval);
-      }, 1000);
-  }
+  // 2-Second Delay to show the correct answer before proceeding to leaderboard/shop
+  setTimeout(() => {
+    document.getElementById('lb-timer').innerText = "5";
+    document.getElementById('leaderboard-modal').style.display = 'flex';
+    
+    if (!isMultiplayer || isHost) {
+        let countdown = 5;
+        if (roundTimerInterval) clearInterval(roundTimerInterval);
+        roundTimerInterval = setInterval(() => {
+          countdown--;
+          document.getElementById('lb-timer').innerText = countdown;
+          if (countdown <= 0) {
+            clearInterval(roundTimerInterval);
+            if (isMultiplayer) broadcast({ type: 'NEXT_QUESTION' });
+            closeLeaderboardAndNext();
+          }
+        }, 1000);
+    } else {
+        let countdown = 5;
+        if (roundTimerInterval) clearInterval(roundTimerInterval);
+        roundTimerInterval = setInterval(() => {
+          countdown--;
+          document.getElementById('lb-timer').innerText = countdown;
+          if (countdown <= 0) clearInterval(roundTimerInterval);
+        }, 1000);
+    }
+  }, 2000);
 }
 
 function renderDynamicLeaderboard() {
