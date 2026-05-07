@@ -96,15 +96,25 @@
   }
   .settings-row select { font-family: 'IBM Plex Mono', monospace; padding: 5px; font-size: 1.1rem; }
 
-  /* Multiplayer Lobby */
+  /* Input fields */
   input[type="text"] {
     font-family: 'IBM Plex Mono', monospace;
-    padding: 10px; font-size: 1.5rem; text-align: center; width: 250px;
+    padding: 10px; font-size: 1.5rem; text-align: center; width: 100%; max-width: 300px;
     border: 1px solid var(--sepia); background: white; margin-bottom: 10px;
-    text-transform: uppercase;
   }
+  input.code-input { text-transform: uppercase; letter-spacing: 2px; }
+
+  /* Multiplayer Lobby */
   .room-code-display { font-size: 3.5rem; font-weight: bold; color: var(--rust); letter-spacing: 10px; margin: 1rem 0; font-family: 'IBM Plex Mono', monospace;}
   .status-text { font-size: 1.2rem; margin: 1rem 0; font-weight: 600; color: var(--navy); }
+  
+  .player-roster {
+    margin: 1rem 0; padding: 1rem; background: rgba(255,255,255,0.6);
+    border: 1px dashed var(--sepia); border-radius: 4px; text-align: left;
+    max-height: 200px; overflow-y: auto; font-family: 'IBM Plex Mono', monospace;
+  }
+  .roster-item { padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.1); }
+  .roster-item:last-child { border-bottom: none; }
 
   /* Quiz Area */
   #screen-quiz { text-align: left; }
@@ -114,7 +124,6 @@
   }
   .chip { padding: 4px 8px; border-radius: 4px; background: var(--aged); }
   .player-score { background: var(--navy); color: white; }
-  .opponent-score { background: var(--rust); color: white; }
 
   .question-box { font-size: 1.25rem; margin-bottom: 1.5rem; line-height: 1.6; }
   .options-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
@@ -137,10 +146,20 @@
   #leaderboard-modal {
     display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(245, 239, 226, 0.95); z-index: 10; flex-direction: column;
-    justify-content: center; align-items: center; text-align: center; border-radius: 4px;
+    align-items: center; text-align: center; border-radius: 4px; padding-top: 3rem;
   }
   .lb-title { font-size: 2.5rem; color: var(--rust); margin-bottom: 1rem; font-family: 'Playfair Display', serif;}
-  .lb-score { font-size: 2rem; margin: 10px 0; font-family: 'IBM Plex Mono', monospace;}
+  
+  .lb-list {
+    width: 80%; max-width: 400px; background: white; border: 1px solid var(--sepia);
+    margin-bottom: 2rem; max-height: 300px; overflow-y: auto; text-align: left;
+  }
+  .lb-row {
+    display: flex; justify-content: space-between; padding: 10px 15px;
+    border-bottom: 1px solid var(--aged); font-family: 'IBM Plex Mono', monospace; font-size: 1.1rem;
+  }
+  .lb-row.me { background: var(--aged); font-weight: bold; }
+  .lb-row:last-child { border-bottom: none; }
 
   /* Progress Bar */
   .progress-bar { width: 100%; height: 8px; background: var(--aged); margin-top: 2rem; border-radius: 4px; overflow: hidden; }
@@ -148,7 +167,6 @@
 
   /* Results */
   .grade { font-size: 5rem; font-family: 'Playfair Display', serif; margin: 1rem 0; color: var(--ink); }
-  .result-details { font-size: 1.2rem; margin-bottom: 2rem; }
 
   .app-screen { display: none; }
   .app-screen.active { display: block; }
@@ -189,10 +207,12 @@
   </div>
 </div>
 <div class="container app-screen active" id="screen-main-menu">
-  <h2>Select Game Mode</h2>
-  <br>
-  <button class="big-btn" onclick="goToSP()">Single Player</button>
-  <button class="big-btn secondary" onclick="showScreen('screen-mp-lobby')">Multiplayer</button>
+  <h2>Enter Your Name</h2>
+  <input type="text" id="player-name-input" placeholder="Your Name" maxlength="15">
+  
+  <h2 style="margin-top: 2rem;">Select Game Mode</h2>
+  <button class="big-btn" onclick="setAndGo('SP')">Single Player</button>
+  <button class="big-btn secondary" onclick="setAndGo('MP')">Multiplayer</button>
 </div>
 
 <div class="container app-screen" id="screen-sp-setup">
@@ -209,7 +229,7 @@
   <hr style="margin:20px 0; border:1px solid var(--sepia);">
   <h3>Join a Match</h3>
   <br>
-  <input type="text" id="join-code-input" placeholder="4-LETTER CODE" maxlength="4">
+  <input type="text" class="code-input" id="join-code-input" placeholder="4-LETTER CODE" maxlength="4">
   <button class="big-btn secondary" id="join-btn" onclick="joinGame()">Join Room</button>
   <button class="big-btn danger" onclick="showScreen('screen-main-menu')">Back to Menu</button>
   <p class="status-text" id="join-status-msg"></p>
@@ -217,13 +237,15 @@
 
 <div class="container app-screen" id="screen-mp-host">
   <h2>Hosting Match</h2>
-  <p>Give this code to your opponent:</p>
+  <p>Give this code to your friends:</p>
   <div class="room-code-display" id="room-code">----</div>
   
   <div id="host-settings-target"></div>
   
-  <p class="status-text" id="host-status">Waiting for opponent to join...</p>
-  <button class="big-btn" id="start-mp-btn" disabled onclick="hostStartGame()">Start Match Now</button>
+  <h4>Players in Room:</h4>
+  <div class="player-roster" id="host-roster">Loading...</div>
+  
+  <button class="big-btn" id="start-mp-btn" onclick="hostStartGame()">Start Match Now</button>
   <button class="big-btn danger" onclick="location.reload()">Cancel Lobby</button>
 </div>
 
@@ -231,27 +253,33 @@
   <h2>Joined Match</h2>
   <div class="room-code-display" id="joined-room-code"></div>
   <p class="status-text" style="color: var(--correct);">Successfully Connected!</p>
+  
+  <h4>Players in Room:</h4>
+  <div class="player-roster" id="join-roster">Loading...</div>
+
   <p>Waiting for the host to select settings and start the match...</p>
 </div>
 
 <div class="container app-screen" id="screen-quiz">
   <div id="leaderboard-modal">
     <div class="lb-title">Round Complete!</div>
-    <div class="lb-score" id="lb-you">You: 0</div>
-    <div class="lb-score" id="lb-opp">Opponent: 0</div>
-    <div style="margin-top: 2rem; color: var(--rust);">Next question in <span id="lb-timer">5</span>...</div>
+    
+    <div class="lb-list" id="lb-list-container">
+      </div>
+
+    <div style="color: var(--rust); font-size: 1.2rem;">Next question in <span id="lb-timer">5</span>...</div>
   </div>
 
   <div class="stats-bar">
     <span class="chip" id="chip-remaining">Question: 1/10</span>
     <span class="chip player-score" id="chip-score">Score: 0</span>
-    <span class="chip opponent-score hidden" id="chip-opponent">Opponent: 0</span>
+    <span class="chip" id="chip-players-connected" style="background:var(--sepia); color:white;">Players: 1</span>
   </div>
   
   <div class="question-box" id="question-text">Loading question...</div>
   <div class="options-grid" id="options-grid"></div>
   
-  <div class="overlay-msg" id="waiting-msg">Waiting for opponent to answer...</div>
+  <div class="overlay-msg" id="waiting-msg">Waiting for other players...</div>
   
   <div class="progress-bar">
     <div id="progress-fill"></div>
@@ -261,8 +289,10 @@
 <div class="container app-screen" id="screen-results">
   <h2>Match Complete</h2>
   <div class="grade" id="final-outcome">Victory!</div>
-  <div class="result-details" id="result-summary"></div>
-  <div class="result-details" id="result-multiplayer"></div>
+  
+  <div class="lb-list" id="final-lb-container" style="margin: 0 auto 2rem auto;">
+     </div>
+  
   <button class="big-btn" onclick="location.reload()">Return to Main Menu</button>
 </div>
 
@@ -273,7 +303,7 @@
 // Format: [Period, "Question Text", "Correct", "Wrong1", "Wrong2", "Wrong3"]
 // ==========================================
 const rawBank = [
-  // PERIOD 1 (5% = 10 Questions)
+  // PERIOD 1
   [1,"How did the cultivation of maize primarily impact pre-Columbian Native American societies?","It supported economic development and social diversification.","It led to rapid desertification of the Great Plains.","It forced indigenous populations to adopt nomadic lifestyles.","It prevented the establishment of large trade networks."],
   [1,"What was the primary goal of the Spanish encomienda system?","To extract labor from Native Americans while ostensibly converting them.","To establish equal trade alliances with the Aztec Empire.","To grant sovereign land rights to indigenous leaders.","To completely replace Native laborers with indentured Europeans."],
   [1,"How did Native Americans in the Great Basin and western Plains primarily adapt to their environment?","By developing highly mobile, nomadic lifestyles focused on hunting.","By constructing massive irrigation networks for intensive farming.","By establishing permanent, multi-story cliff dwellings.","By relying exclusively on fishing and whaling economies."],
@@ -285,7 +315,7 @@ const rawBank = [
   [1,"What drove European nations to explore and conquer the New World?","A desire for new sources of wealth, power, and religious converts.","A need to relieve severe overpopulation in European cities.","The goal of establishing utopian, classless societies.","To find sanctuary for religious minorities fleeing persecution."],
   [1,"Which pre-Columbian civilization is known for extensive earthworks in the Mississippi River Valley?","Cahokia","Ancestral Pueblo","Iroquois Confederacy","Algonquian"],
 
-  // PERIOD 2 (7% = 14 Questions)
+  // PERIOD 2
   [2,"What was the primary economic motivation for the founding of Jamestown?","To generate profits for the investors of the Virginia Company.","To establish a religious haven for persecuted Puritans.","To create an egalitarian society based on subsistence farming.","To build a strategic military base against the French."],
   [2,"How did the development of tobacco cultivation affect the Chesapeake colonies?","It created a heavy reliance on indentured servitude and later slavery.","It led to the rapid development of large, bustling urban centers.","It promoted peaceful and cooperative relations with the Powhatan.","It encouraged the establishment of public schools and universities."],
   [2,"Which of the following was a key characteristic of the New England colonies?","They were settled by families seeking religious freedom and built tight-knit communities.","They relied primarily on the cultivation of cash crops like rice and indigo.","They featured a highly unequal society dominated by a small planter elite.","They actively encouraged the immigration of diverse religious groups like Catholics."],
@@ -301,7 +331,7 @@ const rawBank = [
   [2,"The Stono Rebellion of 1739 was significant because it:","Led to the passage of stricter slave codes in South Carolina.","Successfully established an independent republic of freedmen.","Was the first major uprising against British colonial taxation.","Convinced Southern planters to end the importation of slaves."],
   [2,"What characterized the economic relationship between Native Americans and the French?","A cooperative network focused primarily on the fur trade.","A hostile relationship driven by French expansion into agricultural lands.","A complete lack of interaction due to physical geographic barriers.","The widespread use of the encomienda system by French Jesuits."],
 
-  // PERIOD 3 (13% = 26 Questions)
+  // PERIOD 3
   [3,"What was the primary consequence of the French and Indian War for Great Britain?","It left Britain with massive debt, leading to new taxes on the colonies.","It resulted in the immediate loss of all British territory in North America.","It ushered in an era of unprecedented political autonomy for the colonies.","It caused the British Parliament to abolish the mercantilist system."],
   [3,"The Proclamation of 1763 angered American colonists because it:","Banned colonial settlement west of the Appalachian Mountains.","Imposed a direct tax on all printed materials in the colonies.","Required colonists to provide housing and food for British troops.","Granted a monopoly on the tea trade to the East India Company."],
   [3,"What was the main argument of the colonists against the Stamp Act?","Only their elected colonial assemblies had the right to tax them directly.","The tax rate was too high for the average farmer to afford.","The revenue was being used to fund wars in Europe rather than America.","It violated their right to freely trade with the French West Indies."],
@@ -329,7 +359,7 @@ const rawBank = [
   [3,"Which event proved to the British that the colonists could stand up to a professional army?","Bunker Hill","Trenton","Camden","Valley Forge"],
   [3,"The Declaration of Independence relied heavily on the grievances against:","King George III","Parliament","The East India Company","The Anglican Church"],
 
-  // PERIOD 4 (13% = 26 Questions)
+  // PERIOD 4
   [4,"What was the significance of the Supreme Court ruling in Marbury v. Madison (1803)?","It established the principle of judicial review over federal laws.","It upheld the constitutionality of the National Bank.","It declared that states could not tax federal institutions.","It ruled that Native American tribes were sovereign nations."],
   [4,"Why was Thomas Jefferson initially hesitant to authorize the Louisiana Purchase?","The Constitution did not explicitly grant the president power to purchase land.","He feared it would upset relations with the British Empire.","He believed the land was too vast and uninhabitable for farming.","He thought it would accelerate the industrialization of the United States."],
   [4,"The Market Revolution of the early 19th century was characterized by:","The shift toward commercial agriculture and specialized industrial production.","A decline in urbanization as people moved to frontier farms.","The complete eradication of the institution of slavery.","A return to self-sufficient, localized barter economies."],
@@ -357,7 +387,7 @@ const rawBank = [
   [4,"Nativist organizations, such as the Know-Nothing Party, primarily targeted:","Irish and German Catholic immigrants.","Enslaved African Americans in the South.","Native Americans living on the frontier.","Wealthy British merchants operating in northern cities."],
   [4,"Utopian communities like Brook Farm and Oneida emerged as a response to:","The social and economic disruptions caused by the Market Revolution.","The strict moral regulations of the Second Great Awakening.","The political corruption of the Jacksonian era.","The expansion of slavery into the newly acquired western territories."],
 
-  // PERIOD 5 (13% = 26 Questions)
+  // PERIOD 5
   [5,"The ideology of Manifest Destiny was used to justify:","The westward expansion of the US to the Pacific Ocean.","The strict containment of slavery to the South.","The immediate assimilation of Native Americans.","The establishment of an overseas American empire."],
   [5,"Which event directly sparked the Mexican-American War?","A dispute over the southern boundary of Texas.","The Mexican attack on the Alamo.","The publication of the Ostend Manifesto.","The US annexation of California."],
   [5,"The Wilmot Proviso controversially proposed that:","Slavery be banned in any territory acquired from Mexico.","California be admitted as a slave state.","The Missouri Compromise line be extended to the Pacific.","Popular sovereignty decide the fate of all new territories."],
@@ -385,7 +415,7 @@ const rawBank = [
   [5,"Which group became the primary target of the Ku Klux Klan during Reconstruction?","African Americans who attempted to exercise their political rights.","Northern factory owners who relocated to the South.","Former Confederate soldiers who refused to swear allegiance to the Union.","Recent immigrants settling in Southern port cities."],
   [5,"The term 'carpetbaggers' was a derogatory label used by white Southerners to describe:","Northerners who moved South during Reconstruction for political or economic gain.","Freedmen who sought political office.","White Southerners who supported the Republican Party.","Federal military commanders stationed in the South."],
 
-  // PERIOD 6 (13% = 26 Questions)
+  // PERIOD 6
   [6,"The completion of the Transcontinental Railroad in 1869 had which major economic impact?","It integrated national markets and spurred rapid industrial and western development.","It immediately collapsed the agricultural economy of the Midwest.","It ended the era of massive European immigration to the East Coast.","It caused a drastic decline in the profitability of the steel industry."],
   [6,"What was the primary purpose of the Homestead Act of 1862?","To encourage western settlement by offering 160 acres of free land to farmers.","To provide land grants for the construction of transcontinental railroads.","To establish reservations for Native American tribes displaced by white settlers.","To allocate federal lands for the creation of agricultural colleges."],
   [6,"The Dawes Severalty Act of 1887 was an attempt to assimilate Native Americans by:","Breaking up tribal reservations into individual farming plots.","Sending Native American children to federally funded boarding schools.","Granting full US citizenship to all Native Americans.","Encouraging the preservation of traditional indigenous religions like the Ghost Dance."],
@@ -413,7 +443,7 @@ const rawBank = [
   [6,"W.E.B. Du Bois fiercely disagreed with Booker T. Washington, instead advocating for:","The 'Talented Tenth' to pursue higher education and demand immediate equal rights.","The acceptance of segregation as a temporary necessity.","The establishment of independent black agricultural communes.","The reliance on white philanthropy to fund industrial schools."],
   [6,"The Interstate Commerce Act was primarily designed to regulate the rates of:","Railroads","Steel monopolies","Standard Oil","Textile mills"],
 
-  // PERIOD 7 (14% = 28 Questions)
+  // PERIOD 7
   [7,"Muckrakers like Upton Sinclair and Ida Tarbell were journalists who:","Exposed political corruption and corporate abuses to spark public reform.","Wrote sensationalist yellow journalism to start the Spanish-American War.","Promoted the extreme laissez-faire economic policies of the Gilded Age.","Defended the actions of political machines like Tammany Hall."],
   [7,"Which of the following was a primary motivation for American imperialism in the 1890s?","The desire for new overseas markets and naval coaling stations.","A need to acquire new land for mass European immigration.","The goal of spreading democratic institutions to the nations of Europe.","A commitment to upholding the Monroe Doctrine globally."],
   [7,"The Spanish-American War resulted in the United States acquiring which territories?","The Philippines, Puerto Rico, and Guam.","Cuba, Hawaii, and Alaska.","The Dominican Republic, Haiti, and the Virgin Islands.","Panama, Nicaragua, and Mexico."],
@@ -443,7 +473,7 @@ const rawBank = [
   [7,"Women contributed to the WWII effort primarily by:","Joining the industrial workforce in massive numbers (e.g., Rosie the Riveter).","Serving in direct combat roles on the front lines.","Organizing widespread anti-war protests on college campuses.","Leading the diplomatic negotiations at the Yalta Conference."],
   [7,"What was the main purpose of the bracero program during WWII?","To import temporary agricultural workers from Mexico to alleviate labor shortages.","To recruit Native Americans to serve as code talkers in the Pacific.","To train African American pilots, known as the Tuskegee Airmen.","To relocate urban workers to new defense plants in the Sunbelt."],
 
-  // PERIOD 8 (14% = 28 Questions)
+  // PERIOD 8
   [8,"The Truman Doctrine established the US foreign policy of:","Containment, committing to support free peoples resisting communist subjugation.","Massive retaliation, threatening nuclear war against any Soviet aggression.","Détente, seeking peaceful coexistence and arms reduction with the USSR.","Isolationism, withdrawing all American troops from Europe."],
   [8,"The Marshall Plan aimed to prevent the spread of communism by:","Providing massive economic aid to rebuild the devastated economies of Western Europe.","Forming a mutual defense pact with democratic nations (NATO).","Engaging in a massive buildup of conventional military forces.","Dropping supplies into blockaded cities, as seen in Berlin."],
   [8,"The Second Red Scare and McCarthyism were characterized by:","Aggressive, often unsubstantiated accusations of communist infiltration in the US government.","A highly successful effort to uncover hundreds of actual Soviet spies.","The complete outlawing of the Democratic Party.","A focus entirely on exposing communists in the Hollywood film industry."],
@@ -473,7 +503,7 @@ const rawBank = [
   [8,"The Black Panther Party differed from mainstream civil rights organizations by advocating for:","Armed self-defense and radical black nationalism.","Complete reliance on the federal court system.","Strict nonviolent resistance in all situations.","Integration into white, middle-class society."],
   [8,"The War Powers Act of 1973 was passed by Congress to:","Limit the president's ability to commit US troops abroad without congressional approval.","Give the president absolute authority to declare war.","Authorize the immediate invasion of Cambodia.","Ensure the military budget could never be reduced."],
 
-  // PERIOD 9 (5% = 10 Questions)
+  // PERIOD 9
   [9,"The 'Reagan Revolution' of the 1980s was characterized by a conservative agenda that emphasized:","Tax cuts, deregulation of business, and a massive increase in military spending.","The rapid expansion of federal welfare programs.","A policy of strict détente and arms reduction with the Soviet Union.","The nationalization of major industries and banks."],
   [9,"What was a major consequence of the Persian Gulf War (1991)?","A successful US-led coalition expelled Iraqi forces from Kuwait.","Saddam Hussein was immediately removed from power and executed.","The US permanently annexed the oil fields of the Middle East.","The United Nations was dissolved due to its failure to act."],
   [9,"The North American Free Trade Agreement (NAFTA), signed in 1993, aimed to:","Eliminate trade barriers between the US, Canada, and Mexico.","Create a single currency for the Western Hemisphere.","Prevent the outsourcing of American manufacturing jobs.","Establish a mutual defense pact against European aggression."],
@@ -487,18 +517,21 @@ const rawBank = [
 ];
 
 // App State
+let myName = "Player";
 let currentQuestions = [];
 let currentIndex = 0;
 let myScore = 0;
-let opponentScore = 0;
 
-// Multiplayer Sync State
+// Multiplayer Sync State (Star Topology)
 let peer = null;
-let conn = null;
+let conn = null; // Client's connection to host
 let isHost = false;
 let isMultiplayer = false;
-let myAnswer = null;
-let oppAnswer = null;
+let hostAnswer = null;
+
+// Only the Host uses this dictionary to track everyone
+// Structure: { peerId: { conn: Object, name: "Name", score: 0, answer: null } }
+let players = {}; 
 
 // --- Setup System & UI Navigation ---
 function showScreen(screenId) {
@@ -513,13 +546,21 @@ function mountSettings(targetId) {
   target.appendChild(settingsModule);
 }
 
-function goToSP() {
-  mountSettings('sp-settings-target');
-  showScreen('screen-sp-setup');
+function setAndGo(mode) {
+  const inputName = document.getElementById('player-name-input').value.trim();
+  if (!inputName) return alert("Please enter your name first!");
+  myName = inputName;
+  
+  if (mode === 'SP') {
+    mountSettings('sp-settings-target');
+    showScreen('screen-sp-setup');
+  } else {
+    showScreen('screen-mp-lobby');
+  }
 }
 
 document.querySelectorAll('#period-toggles button').forEach(b => {
-  //b.classList.add('active');
+  // b.classList.add('active'); // Removed so none are selected by default
   b.addEventListener('click', (e) => { e.target.classList.toggle('active'); });
 });
 
@@ -557,26 +598,73 @@ function startSinglePlayer() {
   startGameUI();
 }
 
-// --- Multiplayer (PeerJS) ---
+// --- Multiplayer (PeerJS Host) ---
 function startHosting() {
   mountSettings('host-settings-target');
   showScreen('screen-mp-host');
   document.getElementById('room-code').innerText = "....";
   
   peer = new Peer(generateRoomCode());
+  isHost = true;
   
   peer.on('open', (id) => {
     document.getElementById('room-code').innerText = id;
-    document.getElementById('host-status').innerText = "Waiting for opponent to join...";
+    updateHostRoster();
   });
 
   peer.on('connection', (connection) => {
-    conn = connection;
-    isHost = true;
-    setupConnection();
+    connection.on('open', () => {
+      // New connection established, wait for JOIN message to get their name
+    });
+    
+    connection.on('data', (msg) => {
+      if (msg.type === 'JOIN') {
+        players[connection.peer] = { conn: connection, name: msg.name, score: 0, answer: null };
+        updateHostRoster();
+      } else if (msg.type === 'ANSWER_SUBMITTED') {
+        if (players[connection.peer]) players[connection.peer].answer = msg.answer;
+        checkAllAnswered();
+      }
+    });
+
+    connection.on('close', () => {
+      delete players[connection.peer];
+      updateHostRoster();
+      checkAllAnswered(); // In case we were waiting on them to finish a round
+    });
   });
 }
 
+function updateHostRoster() {
+  const rosterDiv = document.getElementById('host-roster');
+  let names = Object.values(players).map(p => p.name);
+  
+  // Render local roster
+  let html = `<div class="roster-item" style="color:var(--correct); font-weight:bold;">${myName} (Host)</div>`;
+  names.forEach(n => html += `<div class="roster-item">${n}</div>`);
+  rosterDiv.innerHTML = html;
+  
+  // Broadcast roster update to clients
+  broadcast({ type: 'ROSTER_UPDATE', names: names, hostName: myName });
+}
+
+function broadcast(data) {
+  Object.values(players).forEach(p => {
+    if (p.conn && p.conn.open) p.conn.send(data);
+  });
+}
+
+function hostStartGame() {
+  const count = parseInt(document.getElementById('q-count').value);
+  currentQuestions = generateQuizBank(count);
+  if (currentQuestions.length === 0) return;
+  
+  isMultiplayer = true;
+  broadcast({ type: 'START', data: currentQuestions });
+  startGameUI();
+}
+
+// --- Multiplayer (PeerJS Client) ---
 function joinGame() {
   const code = document.getElementById('join-code-input').value.toUpperCase();
   if (code.length !== 4) return alert("Invalid 4-Letter code.");
@@ -588,51 +676,50 @@ function joinGame() {
   peer.on('open', () => {
     conn = peer.connect(code);
     isHost = false;
-    setupConnection();
+    setupClientConnection();
   });
 }
 
-function setupConnection() {
+function setupClientConnection() {
   conn.on('open', () => {
     isMultiplayer = true;
-    if (isHost) {
-      document.getElementById('host-status').innerText = "Opponent Connected!";
-      document.getElementById('host-status').style.color = "var(--correct)";
-      document.getElementById('start-mp-btn').disabled = false;
-    } else {
-      document.getElementById('joined-room-code').innerText = conn.peer;
-      showScreen('screen-mp-join');
-    }
+    document.getElementById('joined-room-code').innerText = conn.peer;
+    showScreen('screen-mp-join');
+    // Tell host who we are
+    conn.send({ type: 'JOIN', name: myName });
   });
 
   conn.on('data', (msg) => {
-    if (msg.type === 'START') {
+    if (msg.type === 'ROSTER_UPDATE') {
+      const rosterDiv = document.getElementById('join-roster');
+      let html = `<div class="roster-item" style="color:var(--correct); font-weight:bold;">${msg.hostName} (Host)</div>`;
+      msg.names.forEach(n => {
+        if (n === myName) html += `<div class="roster-item" style="font-weight:bold;">${n} (You)</div>`;
+        else html += `<div class="roster-item">${n}</div>`;
+      });
+      rosterDiv.innerHTML = html;
+    }
+    else if (msg.type === 'START') {
       currentQuestions = msg.data;
       startGameUI();
-    } else if (msg.type === 'ANSWER_SUBMITTED') {
-      oppAnswer = msg.answer;
-      checkRoundCompletion();
-    } else if (msg.type === 'ROUND_RESULTS') {
-      myScore = msg.p2Score; // If host sends results, I am p2
-      opponentScore = msg.p1Score;
-      showRoundResults(msg.correctAnswer, msg.p1Answer, msg.p2Answer);
-    } else if (msg.type === 'NEXT_QUESTION') {
+    } 
+    else if (msg.type === 'ROUND_RESULTS') {
+      myScore = msg.myScore;
+      showRoundResults(msg.correctAnswer, msg.leaderboard);
+    } 
+    else if (msg.type === 'NEXT_QUESTION') {
       closeLeaderboardAndNext();
     }
   });
-}
 
-function hostStartGame() {
-  const count = parseInt(document.getElementById('q-count').value);
-  currentQuestions = generateQuizBank(count);
-  if (currentQuestions.length === 0) return;
-  
-  conn.send({ type: 'START', data: currentQuestions });
-  startGameUI();
+  conn.on('close', () => {
+    alert("Connection to host lost!");
+    location.reload();
+  });
 }
 
 function generateRoomCode() {
-  const chars = 'BCDFGHJKLMNPQRSTVWXYZ'; // Consonants only to avoid bad words
+  const chars = 'BCDFGHJKLMNPQRSTVWXYZ'; // Consonants only
   let result = '';
   for(let i = 0; i < 4; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
   return result;
@@ -641,17 +728,30 @@ function generateRoomCode() {
 // --- Game Logic ---
 function startGameUI() {
   showScreen('screen-quiz');
-  if (isMultiplayer) document.getElementById('chip-opponent').classList.remove('hidden');
-  
   currentIndex = 0;
-  myScore = 0; opponentScore = 0;
+  myScore = 0; 
+  hostAnswer = null;
+  
+  if (isMultiplayer) {
+    document.getElementById('chip-players-connected').classList.remove('hidden');
+  } else {
+    document.getElementById('chip-players-connected').classList.add('hidden');
+  }
+  
   loadQuestion();
 }
 
 function loadQuestion() {
   if (currentIndex >= currentQuestions.length) return endGame();
   
-  myAnswer = null; oppAnswer = null;
+  myAnswer = null;
+  if(isHost) hostAnswer = null;
+  
+  // Reset players answers on host
+  if (isHost) {
+    Object.keys(players).forEach(id => players[id].answer = null);
+  }
+
   document.getElementById('waiting-msg').style.display = 'none';
   
   const q = currentQuestions[currentIndex];
@@ -678,6 +778,7 @@ function handleAnswer(selected, btn) {
   myAnswer = selected;
   
   if (!isMultiplayer) {
+    // Single Player Logic
     const q = currentQuestions[currentIndex];
     if (myAnswer === q.answer) {
       btn.classList.add('correct-ans');
@@ -691,49 +792,104 @@ function handleAnswer(selected, btn) {
     return;
   }
   
+  // Multiplayer Logic
   document.getElementById('waiting-msg').style.display = 'block';
-  conn.send({ type: 'ANSWER_SUBMITTED', answer: myAnswer });
-  checkRoundCompletion();
+  
+  if (isHost) {
+    hostAnswer = myAnswer;
+    checkAllAnswered();
+  } else {
+    conn.send({ type: 'ANSWER_SUBMITTED', answer: myAnswer });
+  }
 }
 
-function checkRoundCompletion() {
+function checkAllAnswered() {
   if (!isHost) return; 
-  if (myAnswer !== null && oppAnswer !== null) {
+  
+  // Check if everyone (Host + all active clients) has locked in an answer
+  let allDone = (hostAnswer !== null);
+  Object.values(players).forEach(p => {
+    if (p.answer === null) allDone = false;
+  });
+
+  if (allDone) {
     const correctAnswer = currentQuestions[currentIndex].answer;
     
-    if (myAnswer === correctAnswer) myScore += 100;
-    if (oppAnswer === correctAnswer) opponentScore += 100;
+    // Grade host
+    if (hostAnswer === correctAnswer) myScore += 100;
     
-    conn.send({
-      type: 'ROUND_RESULTS', p1Score: myScore, p2Score: opponentScore,
-      correctAnswer: correctAnswer, p1Answer: myAnswer, p2Answer: oppAnswer
+    // Grade clients
+    Object.keys(players).forEach(id => {
+      if (players[id].answer === correctAnswer) players[id].score += 100;
     });
     
-    showRoundResults(correctAnswer, myAnswer, oppAnswer);
+    // Build unified leaderboard payload
+    let lb = [];
+    lb.push({ id: 'HOST', name: myName, score: myScore });
+    Object.keys(players).forEach(id => {
+       lb.push({ id: id, name: players[id].name, score: players[id].score });
+    });
+    // Sort descending by score
+    lb.sort((a,b) => b.score - a.score);
+
+    // Send payload to all clients
+    Object.keys(players).forEach(id => {
+      if (players[id].conn && players[id].conn.open) {
+        players[id].conn.send({
+          type: 'ROUND_RESULTS',
+          correctAnswer: correctAnswer,
+          leaderboard: lb,
+          myScore: players[id].score // update their local score
+        });
+      }
+    });
     
+    // Show host their results
+    showRoundResults(correctAnswer, lb);
+    
+    // 5-second synchronized timer to next round
     let countdown = 5;
     const interval = setInterval(() => {
       countdown--;
       document.getElementById('lb-timer').innerText = countdown;
       if (countdown <= 0) {
         clearInterval(interval);
-        conn.send({ type: 'NEXT_QUESTION' });
+        broadcast({ type: 'NEXT_QUESTION' });
         closeLeaderboardAndNext();
       }
     }, 1000);
   }
 }
 
-function showRoundResults(correctAnswer, p1Ans, p2Ans) {
+function showRoundResults(correctAnswer, leaderboard) {
+  // Reveal colors on buttons behind the modal
   const buttons = document.querySelectorAll('.option-btn');
   buttons.forEach(b => {
     if (b.innerText === correctAnswer) b.classList.add('correct-ans');
     else if (b.classList.contains('selected') && b.innerText !== correctAnswer) b.classList.add('wrong-ans');
   });
 
+  // Render leaderboard list dynamically
+  const listContainer = document.getElementById('lb-list-container');
+  let html = '';
+  
+  leaderboard.forEach((player, index) => {
+    // Check if this row represents "me"
+    let isMe = false;
+    if (isHost && player.id === 'HOST') isMe = true;
+    if (!isHost && player.name === myName) isMe = true; // Fallback match by name for clients
+    
+    html += `
+      <div class="lb-row ${isMe ? 'me' : ''}">
+        <span>${index + 1}. ${player.name}</span>
+        <span>${player.score}</span>
+      </div>
+    `;
+  });
+  
+  listContainer.innerHTML = html;
+
   document.getElementById('lb-timer').innerText = "5";
-  document.getElementById('lb-you').innerText = `You: ${myScore}`;
-  document.getElementById('lb-opp').innerText = `Opponent: ${opponentScore}`;
   document.getElementById('leaderboard-modal').style.display = 'flex';
   updateStats();
 }
@@ -746,27 +902,38 @@ function closeLeaderboardAndNext() {
 
 function updateStats() {
   document.getElementById('chip-score').innerText = `Score: ${myScore}`;
-  if (isMultiplayer) document.getElementById('chip-opponent').innerText = `Opp: ${opponentScore}`;
+  
+  if (isMultiplayer) {
+    let activePlayersCount = isHost ? Object.keys(players).length + 1 : "Multiplayer";
+    document.getElementById('chip-players-connected').innerText = `Players: ${activePlayersCount}`;
+  }
+  
   document.getElementById('chip-remaining').innerText = `Q: ${Math.min(currentIndex + 1, currentQuestions.length)} / ${currentQuestions.length}`;
   document.getElementById('progress-fill').style.width = `${(currentIndex / currentQuestions.length) * 100}%`;
 }
 
 function endGame() {
   showScreen('screen-results');
-  const totalPossible = currentQuestions.length * 100;
-  document.getElementById('result-summary').innerText = `Final Score: ${myScore} / ${totalPossible}`;
   
   if (isMultiplayer) {
-    let outcomeText = "TIE GAME";
-    let color = "var(--ink)";
-    if (myScore > opponentScore) { outcomeText = "VICTORY"; color = "var(--correct)"; }
-    else if (myScore < opponentScore) { outcomeText = "DEFEAT"; color = "var(--wrong)"; }
+    // Copy the last shown leaderboard to the final screen
+    const finalLbContainer = document.getElementById('final-lb-container');
+    finalLbContainer.innerHTML = document.getElementById('lb-list-container').innerHTML;
     
-    document.getElementById('final-outcome').innerText = outcomeText;
-    document.getElementById('final-outcome').style.color = color;
-    document.getElementById('result-multiplayer').innerText = `Opponent's Score: ${opponentScore}`;
+    // Determine if won
+    // Top player is the first node in the leaderboard HTML since it was sorted
+    const topRow = finalLbContainer.firstElementChild;
+    const isWinner = topRow && topRow.classList.contains('me');
+    
+    document.getElementById('final-outcome').innerText = isWinner ? "Victory!" : "Defeat!";
+    document.getElementById('final-outcome').style.color = isWinner ? "var(--correct)" : "var(--wrong)";
   } else {
     document.getElementById('final-outcome').innerText = "Complete!";
+    const totalPossible = currentQuestions.length * 100;
+    document.getElementById('final-lb-container').innerHTML = `
+      <div class="lb-row" style="justify-content:center; font-size:1.5rem;">
+         Final Score: ${myScore} / ${totalPossible}
+      </div>`;
   }
 }
 </script>
