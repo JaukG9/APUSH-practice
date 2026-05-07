@@ -69,8 +69,8 @@
   .timer-text { position: absolute; top: 0; left: 0; width: 100%; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; font-weight: bold; line-height: 20px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);}
 
   .stats-bar { display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--sepia); }
-  .chip { padding: 4px 8px; border-radius: 4px; background: var(--aged); }
-  .player-score { background: var(--navy); color: white; font-weight: bold;}
+  .chip { padding: 4px 8px; border-radius: 4px; background: var(--aged); font-weight: bold; }
+  .player-score { background: var(--navy); color: white; }
   
   .question-box { font-size: 1.25rem; margin-bottom: 1.5rem; line-height: 1.6; }
   .options-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
@@ -156,8 +156,8 @@
 
   <div class="tutorial-box">
     <h3>How to Play & Powerups</h3>
-    <p><strong>The Timer:</strong> If enabled, faster correct answers grant more points (60 to 100). Wrong answers yield 0. If disabled, correct answers give a flat 100 points.</p>
-    <p><strong>The Shop:</strong> Between rounds, you have 5 seconds to buy powerups using your score points!</p>
+    <p><strong>The Timer:</strong> If enabled, faster correct answers grant more points. Wrong answers yield 0. If disabled, correct answers give a flat 100 points.</p>
+    <p><strong>The Shop (Multiplayer Only):</strong> Between rounds, you have 5 seconds to buy powerups using your score points!</p>
     <ul>
       <li><span class="powerup-name">Abraham Lincoln (Cost: 50):</span> Eliminates 2 wrong answers (50/50).</li>
       <li><span class="powerup-name">George Washington (Cost: 150):</span> Eliminates ALL wrong answers (Auto-corrects).</li>
@@ -257,6 +257,7 @@ let myName = "Player";
 let currentQuestions = [];
 let currentIndex = 0;
 let myScore = 0;
+let myCorrectAnswers = 0; // Tracks SP correct answers
 let currentLeader = null; 
 
 let useTimer = true;
@@ -521,20 +522,25 @@ function handleIncomingAttack(type, attackerId) {
       }
     } else {
       conn.send({ type: 'ATTACK_SUCCESS', amount: damageTaken, attacker: attackerId });
-      conn.send({ type: 'SCORE_SYNC', score: myScore }); 
+      conn.send({ type: 'SCORE_SYNC', score: myScore }); // Update host about my lost points
     }
   }
 }
 
 function startGameUI() {
   showScreen('screen-quiz');
-  if (isMultiplayer) document.getElementById('chip-players-connected').classList.remove('hidden');
-  else document.getElementById('chip-players-connected').classList.add('hidden');
+  if (isMultiplayer) {
+      document.getElementById('chip-players-connected').classList.remove('hidden');
+      document.querySelector('.shop-container').style.display = 'block';
+  } else {
+      document.getElementById('chip-players-connected').classList.add('hidden');
+      document.querySelector('.shop-container').style.display = 'none'; // Hide shop in SP
+  }
   
   if (!useTimer) document.getElementById('timer-wrapper').style.display = 'none';
   else document.getElementById('timer-wrapper').style.display = 'block';
 
-  currentIndex = 0; myScore = 0; hostAnswer = null;
+  currentIndex = 0; myScore = 0; myCorrectAnswers = 0; hostAnswer = null;
   
   // reset buffs
   buffs = { manifestDestiny: false, monroeDoctrine: false, abrahamLincoln: false, georgeWashington: false, embargoAct: false };
@@ -657,6 +663,7 @@ function showRoundResults(correctAnswer) {
       if (buffs.manifestDestiny) { earned *= 2; buffs.manifestDestiny = false; showToast("Double Points!", "good"); }
       if (buffs.embargoAct) { earned = 0; buffs.embargoAct = false; showToast("Embargo Act negated points!", "bad"); }
       myScore += earned;
+      myCorrectAnswers++; // Tracks Single Player Correct Answers
   }
   updateStats();
   
@@ -669,31 +676,36 @@ function showRoundResults(correctAnswer) {
   if (!isHost && isMultiplayer) conn.send({ type: 'SCORE_SYNC', score: myScore });
   else if (isHost) setTimeout(renderDynamicLeaderboard, 500);
   
-  // 2 Second Delay to show the correct answer before proceeding to leaderboard/shop
+  // 2 Second Delay to show the correct answer before proceeding
   setTimeout(() => {
-      document.getElementById('lb-timer').innerText = "5";
-      document.getElementById('leaderboard-modal').style.display = 'flex';
-      
-      if (!isMultiplayer || isHost) {
-          let countdown = 5;
-          if (roundTimerInterval) clearInterval(roundTimerInterval);
-          roundTimerInterval = setInterval(() => {
-            countdown--;
-            document.getElementById('lb-timer').innerText = countdown;
-            if (countdown <= 0) {
-              clearInterval(roundTimerInterval);
-              if (isMultiplayer) broadcast({ type: 'NEXT_QUESTION' });
-              closeLeaderboardAndNext();
-            }
-          }, 1000);
+      if (!isMultiplayer) {
+          // Skip the leaderboard shop modal in Single Player and go instantly to next question
+          closeLeaderboardAndNext();
       } else {
-          let countdown = 5;
-          if (roundTimerInterval) clearInterval(roundTimerInterval);
-          roundTimerInterval = setInterval(() => {
-            countdown--;
-            document.getElementById('lb-timer').innerText = countdown;
-            if (countdown <= 0) clearInterval(roundTimerInterval);
-          }, 1000);
+          document.getElementById('lb-timer').innerText = "5";
+          document.getElementById('leaderboard-modal').style.display = 'flex';
+          
+          if (isHost) {
+              let countdown = 5;
+              if (roundTimerInterval) clearInterval(roundTimerInterval);
+              roundTimerInterval = setInterval(() => {
+                countdown--;
+                document.getElementById('lb-timer').innerText = countdown;
+                if (countdown <= 0) {
+                  clearInterval(roundTimerInterval);
+                  broadcast({ type: 'NEXT_QUESTION' });
+                  closeLeaderboardAndNext();
+                }
+              }, 1000);
+          } else {
+              let countdown = 5;
+              if (roundTimerInterval) clearInterval(roundTimerInterval);
+              roundTimerInterval = setInterval(() => {
+                countdown--;
+                document.getElementById('lb-timer').innerText = countdown;
+                if (countdown <= 0) clearInterval(roundTimerInterval);
+              }, 1000);
+          }
       }
   }, 2000);
 }
@@ -729,7 +741,13 @@ function closeLeaderboardAndNext() {
 }
 
 function updateStats() {
-  document.getElementById('chip-score').innerText = `Score: ${myScore}`;
+  if (!isMultiplayer) {
+      let answered = (myAnswer !== null) ? currentIndex + 1 : currentIndex;
+      document.getElementById('chip-score').innerText = `Correct: ${myCorrectAnswers} / ${answered}`;
+  } else {
+      document.getElementById('chip-score').innerText = `Score: ${myScore}`;
+  }
+  
   if (isMultiplayer) document.getElementById('chip-players-connected').innerText = `Players: ${isHost ? Object.keys(players).length + 1 : 'Multi'}`;
   document.getElementById('chip-remaining').innerText = `Q: ${Math.min(currentIndex + 1, currentQuestions.length)} / ${currentQuestions.length}`;
 }
@@ -745,8 +763,7 @@ function endGame() {
     document.getElementById('final-outcome').style.color = isWinner ? "var(--correct)" : "var(--wrong)";
   } else {
     document.getElementById('final-outcome').innerText = "Complete!";
-    const maxPossible = currentQuestions.length * 100;
-    document.getElementById('final-lb-container').innerHTML = `<div class="lb-row" style="justify-content:center; font-size:1.5rem;">Final Score: ${myScore} / ${maxPossible}</div>`;
+    document.getElementById('final-lb-container').innerHTML = `<div class="lb-row" style="justify-content:center; font-size:1.5rem;">Final Score: ${myCorrectAnswers} / ${currentQuestions.length} Correct</div>`;
   }
 }
 </script>
