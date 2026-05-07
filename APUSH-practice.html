@@ -726,7 +726,7 @@ function startTimer() {
     let display = (Math.max(0, timeLeft) / 1000).toFixed(1);
     document.getElementById('timer-text').innerText = display + "s";
     document.getElementById('timer-bar').style.width = (Math.max(0, timeLeft) / 150) + "%";
-    if (timeLeft <= 3000) document.getElementById('timer-bar').classList.add('warning');
+    if (timeLeft <= 5000) document.getElementById('timer-bar').classList.add('warning');
     
     if (timeLeft <= 0) {
       clearInterval(timerInterval);
