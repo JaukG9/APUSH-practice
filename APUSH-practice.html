@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APUSH Match — AP Style Multiplayer</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
+<style>
+  :root {
+    --ink:     #1a1209;
+    --paper:   #f5efe2;
+    --aged:    #e8dcc8;
+    --sepia:   #c9a86c;
+    --rust:    #9b3a1e;
+    --forest:  #2d4a2d;
+    --navy:    #1c2e4a;
+    --correct: #2d6a2d;
+    --wrong:   #8b1a1a;
+    
+    --p1: #5a3e1b; --p2: #1c4a3e; --p3: #1c2e4a; --p4: #4a1c2e;
+    --p5: #6b3010; --p6: #2f2544; --p7: #524b26; --p8: #1b3847; --p9: #471b1b;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(0,0,0,0.04) 28px),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
+  h1 { font-size: 2.5rem; text-align: center; margin-bottom: 1.5rem; border-bottom: 2px solid var(--sepia); padding-bottom: 1rem; width: 100%; max-width: 800px;}
+
+  .container {
+    width: 100%;
+    max-width: 800px;
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid var(--sepia);
+    padding: 2rem;
+    border-radius: 4px;
+    box-shadow: 2px 4px 12px rgba(0,0,0,0.05);
+    position: relative;
+    text-align: center;
+  }
+
+  /* Reusable Settings Module */
+  .menu-section { margin-bottom: 2rem; text-align: left; }
+  .menu-section h4 { margin-bottom: 1rem; color: var(--rust); font-size: 1.5rem;}
+  
+  .period-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+    margin-bottom: 1rem;
+  }
+  
+  button {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--aged);
+    border: 1px solid var(--sepia);
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--ink);
+    font-weight: 600;
+    border-radius: 3px;
+  }
+  button:hover:not(:disabled) { background: var(--sepia); color: white; }
+  button.active { background: var(--navy); color: white; border-color: var(--navy); }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .big-btn {
+    display: block; width: 100%; padding: 15px; font-size: 1.2rem; margin-top: 10px;
+    background: var(--forest); color: white; border: none;
+  }
+  .big-btn:hover:not(:disabled) { background: #1e361e; }
+  .big-btn.secondary { background: var(--navy); }
+  .big-btn.secondary:hover:not(:disabled) { background: #121f33; }
+  .big-btn.danger { background: var(--rust); }
+  .big-btn.danger:hover:not(:disabled) { background: #7a2a14; }
+
+  .settings-row {
+    display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;
+    padding: 15px; background: rgba(255,255,255,0.5); border: 1px solid var(--sepia);
+  }
+  .settings-row select { font-family: 'IBM Plex Mono', monospace; padding: 5px; font-size: 1.1rem; }
+
+  /* Multiplayer Lobby */
+  input[type="text"] {
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 10px; font-size: 1.5rem; text-align: center; width: 250px;
+    border: 1px solid var(--sepia); background: white; margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .room-code-display { font-size: 3.5rem; font-weight: bold; color: var(--rust); letter-spacing: 10px; margin: 1rem 0; font-family: 'IBM Plex Mono', monospace;}
+  .status-text { font-size: 1.2rem; margin: 1rem 0; font-weight: 600; color: var(--navy); }
+
+  /* Quiz Area */
+  #screen-quiz { text-align: left; }
+  .stats-bar {
+    display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.9rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--sepia);
+  }
+  .chip { padding: 4px 8px; border-radius: 4px; background: var(--aged); }
+  .player-score { background: var(--navy); color: white; }
+  .opponent-score { background: var(--rust); color: white; }
+
+  .question-box { font-size: 1.25rem; margin-bottom: 1.5rem; line-height: 1.6; }
+  .options-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .option-btn {
+    text-align: left; padding: 15px; font-size: 1.1rem;
+    background: white; border: 1px solid var(--sepia);
+  }
+  .option-btn:hover:not(:disabled) { transform: translateX(5px); background: var(--aged); }
+  .option-btn.selected { background: var(--sepia); color: white; border-color: var(--ink); }
+  .option-btn.correct-ans { background: var(--correct) !important; color: white; border-color: var(--correct); }
+  .option-btn.wrong-ans { background: var(--wrong) !important; color: white; border-color: var(--wrong); }
+
+  /* Waiting / Leaderboard Overlays */
+  .overlay-msg {
+    display: none; padding: 15px; margin-top: 15px; text-align: center;
+    background: var(--aged); border: 2px dashed var(--sepia); font-weight: bold;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  
+  #leaderboard-modal {
+    display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(245, 239, 226, 0.95); z-index: 10; flex-direction: column;
+    justify-content: center; align-items: center; text-align: center; border-radius: 4px;
+  }
+  .lb-title { font-size: 2.5rem; color: var(--rust); margin-bottom: 1rem; font-family: 'Playfair Display', serif;}
+  .lb-score { font-size: 2rem; margin: 10px 0; font-family: 'IBM Plex Mono', monospace;}
+
+  /* Progress Bar */
+  .progress-bar { width: 100%; height: 8px; background: var(--aged); margin-top: 2rem; border-radius: 4px; overflow: hidden; }
+  #progress-fill { height: 100%; width: 0%; background: var(--rust); transition: width 0.3s ease; }
+
+  /* Results */
+  .grade { font-size: 5rem; font-family: 'Playfair Display', serif; margin: 1rem 0; color: var(--ink); }
+  .result-details { font-size: 1.2rem; margin-bottom: 2rem; }
+
+  .app-screen { display: none; }
+  .app-screen.active { display: block; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<h1>APUSH Match — AP Style</h1>
+
+<div id="game-settings-module" class="hidden">
+  <div class="menu-section">
+    <h4>Select Periods / Units</h4>
+    <div class="period-grid" id="period-toggles">
+      <button data-period="1">Per 1</button>
+      <button data-period="2">Per 2</button>
+      <button data-period="3">Per 3</button>
+      <button data-period="4">Per 4</button>
+      <button data-period="5">Per 5</button>
+      <button data-period="6">Per 6</button>
+      <button data-period="7">Per 7</button>
+      <button data-period="8">Per 8</button>
+      <button data-period="9">Per 9</button>
+    </div>
+    <button onclick="selectAllPeriods()">Select All Periods</button>
+  </div>
+  
+  <div class="settings-row menu-section">
+    <label for="q-count"><h4>Match Length</h4></label>
+    <select id="q-count">
+      <option value="5">5 Questions</option>
+      <option value="10" selected>10 Questions</option>
+      <option value="20">20 Questions</option>
+      <option value="50">50 Questions</option>
+      <option value="100">100 Questions</option>
+      <option value="200">All 200 Questions</option>
+    </select>
+  </div>
+</div>
+<div class="container app-screen active" id="screen-main-menu">
+  <h2>Select Game Mode</h2>
+  <br>
+  <button class="big-btn" onclick="goToSP()">Single Player</button>
+  <button class="big-btn secondary" onclick="showScreen('screen-mp-lobby')">Multiplayer</button>
+</div>
+
+<div class="container app-screen" id="screen-sp-setup">
+  <h2>Single Player Setup</h2>
+  <div id="sp-settings-target"></div>
+  <button class="big-btn" onclick="startSinglePlayer()">Start Quiz</button>
+  <button class="big-btn danger" onclick="showScreen('screen-main-menu')">Back to Menu</button>
+</div>
+
+<div class="container app-screen" id="screen-mp-lobby">
+  <h2>Multiplayer Mode</h2>
+  <br>
+  <button class="big-btn" onclick="startHosting()">Host a Match</button>
+  <hr style="margin:20px 0; border:1px solid var(--sepia);">
+  <h3>Join a Match</h3>
+  <br>
+  <input type="text" id="join-code-input" placeholder="4-LETTER CODE" maxlength="4">
+  <button class="big-btn secondary" id="join-btn" onclick="joinGame()">Join Room</button>
+  <button class="big-btn danger" onclick="showScreen('screen-main-menu')">Back to Menu</button>
+  <p class="status-text" id="join-status-msg"></p>
+</div>
+
+<div class="container app-screen" id="screen-mp-host">
+  <h2>Hosting Match</h2>
+  <p>Give this code to your opponent:</p>
+  <div class="room-code-display" id="room-code">----</div>
+  
+  <div id="host-settings-target"></div>
+  
+  <p class="status-text" id="host-status">Waiting for opponent to join...</p>
+  <button class="big-btn" id="start-mp-btn" disabled onclick="hostStartGame()">Start Match Now</button>
+  <button class="big-btn danger" onclick="location.reload()">Cancel Lobby</button>
+</div>
+
+<div class="container app-screen" id="screen-mp-join">
+  <h2>Joined Match</h2>
+  <div class="room-code-display" id="joined-room-code"></div>
+  <p class="status-text" style="color: var(--correct);">Successfully Connected!</p>
+  <p>Waiting for the host to select settings and start the match...</p>
+</div>
+
+<div class="container app-screen" id="screen-quiz">
+  <div id="leaderboard-modal">
+    <div class="lb-title">Round Complete!</div>
+    <div class="lb-score" id="lb-you">You: 0</div>
+    <div class="lb-score" id="lb-opp">Opponent: 0</div>
+    <div style="margin-top: 2rem; color: var(--rust);">Next question in <span id="lb-timer">5</span>...</div>
+  </div>
+
+  <div class="stats-bar">
+    <span class="chip" id="chip-remaining">Question: 1/10</span>
+    <span class="chip player-score" id="chip-score">Score: 0</span>
+    <span class="chip opponent-score hidden" id="chip-opponent">Opponent: 0</span>
+  </div>
+  
+  <div class="question-box" id="question-text">Loading question...</div>
+  <div class="options-grid" id="options-grid"></div>
+  
+  <div class="overlay-msg" id="waiting-msg">Waiting for opponent to answer...</div>
+  
+  <div class="progress-bar">
+    <div id="progress-fill"></div>
+  </div>
+</div>
+
+<div class="container app-screen" id="screen-results">
+  <h2>Match Complete</h2>
+  <div class="grade" id="final-outcome">Victory!</div>
+  <div class="result-details" id="result-summary"></div>
+  <div class="result-details" id="result-multiplayer"></div>
+  <button class="big-btn" onclick="location.reload()">Return to Main Menu</button>
+</div>
+
+<script>
+// ==========================================
+// 200 QUESTION AP-STYLE BANK
+// Weighted precisely to College Board standards
+// Format: [Period, "Question Text", "Correct", "Wrong1", "Wrong2", "Wrong3"]
+// ==========================================
+const rawBank = [
+  // PERIOD 1 (5% = 10 Questions)
+  [1,"How did the cultivation of maize primarily impact pre-Columbian Native American societies?","It supported economic development and social diversification.","It led to rapid desertification of the Great Plains.","It forced indigenous populations to adopt nomadic lifestyles.","It prevented the establishment of large trade networks."],
+  [1,"What was the primary goal of the Spanish encomienda system?","To extract labor from Native Americans while ostensibly converting them.","To establish equal trade alliances with the Aztec Empire.","To grant sovereign land rights to indigenous leaders.","To completely replace Native laborers with indentured Europeans."],
+  [1,"How did Native Americans in the Great Basin and western Plains primarily adapt to their environment?","By developing highly mobile, nomadic lifestyles focused on hunting.","By constructing massive irrigation networks for intensive farming.","By establishing permanent, multi-story cliff dwellings.","By relying exclusively on fishing and whaling economies."],
+  [1,"Which factor was most responsible for the drastic decline of Native American populations after 1492?","The introduction of Eurasian diseases like smallpox.","Protracted military conflicts with English settlers.","Widespread famine caused by European agricultural practices.","The mass migration of indigenous peoples to South America."],
+  [1,"What was the central argument of Bartolomé de las Casas regarding Spanish colonization?","He strongly condemned the brutal treatment of Native Americans.","He argued that the encomienda system was divinely ordained.","He advocated for the immediate enslavement of all indigenous peoples.","He believed Native Americans should be forced off their ancestral lands."],
+  [1,"Which of the following was a primary characteristic of the Columbian Exchange?","The transatlantic flow of plants, animals, and pathogens.","The exclusive transfer of gold and silver to the Americas.","The rapid industrialization of Western European economies.","The establishment of democratic governments in the New World."],
+  [1,"How did pre-Columbian societies of the Pacific Northwest sustain themselves?","Through a mix of foraging, hunting, and highly developed fishing.","By relying on extensive cultivation of maize and beans.","By forming large, militaristic empires that conquered neighbors.","By adopting the horse for rapid transportation and buffalo hunting."],
+  [1,"Which statement best describes European views of Native Americans upon initial contact?","Europeans generally viewed them as uncivilized and culturally inferior.","Europeans recognized and respected indigenous land ownership rights.","Europeans believed Native religions were superior to Christianity.","Europeans sought to integrate completely into existing tribal structures."],
+  [1,"What drove European nations to explore and conquer the New World?","A desire for new sources of wealth, power, and religious converts.","A need to relieve severe overpopulation in European cities.","The goal of establishing utopian, classless societies.","To find sanctuary for religious minorities fleeing persecution."],
+  [1,"Which pre-Columbian civilization is known for extensive earthworks in the Mississippi River Valley?","Cahokia","Ancestral Pueblo","Iroquois Confederacy","Algonquian"],
+
+  // PERIOD 2 (7% = 14 Questions)
+  [2,"What was the primary economic motivation for the founding of Jamestown?","To generate profits for the investors of the Virginia Company.","To establish a religious haven for persecuted Puritans.","To create an egalitarian society based on subsistence farming.","To build a strategic military base against the French."],
+  [2,"How did the development of tobacco cultivation affect the Chesapeake colonies?","It created a heavy reliance on indentured servitude and later slavery.","It led to the rapid development of large, bustling urban centers.","It promoted peaceful and cooperative relations with the Powhatan.","It encouraged the establishment of public schools and universities."],
+  [2,"Which of the following was a key characteristic of the New England colonies?","They were settled by families seeking religious freedom and built tight-knit communities.","They relied primarily on the cultivation of cash crops like rice and indigo.","They featured a highly unequal society dominated by a small planter elite.","They actively encouraged the immigration of diverse religious groups like Catholics."],
+  [2,"What was the primary cause of Bacon's Rebellion in 1676?","Frustration of poor backcountry farmers over the governor's Native American policies.","A dispute over the enforcement of the British Navigation Acts.","Religious tension between Anglicans and dissenting Puritans.","A slave uprising aimed at ending the plantation system in Virginia."],
+  [2,"The Middle Colonies (New York, Pennsylvania) were distinct because they:","Featured demographic, religious, and ethnic diversity with a thriving export economy.","Relied almost entirely on enslaved African labor for tobacco farming.","Maintained strict religious conformity governed by Puritan theology.","Were entirely neglected by the British government until the 1750s."],
+  [2,"What was the impact of the First Great Awakening?","It fostered a sense of shared identity and challenged traditional religious authority.","It led to the immediate establishment of religious toleration laws in all colonies.","It strictly reinforced the political power of the Anglican Church in New England.","It caused a sharp decline in the number of evangelical Protestant sects."],
+  [2,"Which principle was established by the Mayflower Compact?","The idea of a self-governing community based on majority rule.","The absolute separation of church and state.","The unalienable rights of life, liberty, and property.","The permanent abolition of indentured servitude."],
+  [2,"What was the primary purpose of the British Navigation Acts?","To ensure that colonial trade enriched the mother country under mercantilism.","To encourage the growth of colonial manufacturing industries.","To prevent the importation of enslaved Africans to North America.","To establish free trade agreements with the French and Spanish empires."],
+  [2,"How did King Philip's War affect the New England colonies?","It resulted in the devastating defeat of regional Native American tribes.","It led to the French gaining control over the Massachusetts Bay colony.","It permanently outlawed the use of Native American slaves.","It forced the colonists to adopt indigenous agricultural practices."],
+  [2,"Which statement best describes the transatlantic slave trade's impact on the colonies?","It led to the emergence of strict racial categories and slave codes in the South.","It remained a minor part of the economy until the invention of the cotton gin.","It was universally condemned by religious leaders in all thirteen colonies.","It only impacted the economies of the New England and Middle colonies."],
+  [2,"What role did salutary neglect play in colonial development?","It allowed the colonies to develop autonomous political and economic institutions.","It forced the colonies into strict compliance with British tax laws.","It prevented the colonies from trading with any non-British entities.","It led to the immediate militarization of the colonial borders."],
+  [2,"Which colony was established as a safe haven for Catholics?","Maryland","Pennsylvania","Rhode Island","Georgia"],
+  [2,"The Stono Rebellion of 1739 was significant because it:","Led to the passage of stricter slave codes in South Carolina.","Successfully established an independent republic of freedmen.","Was the first major uprising against British colonial taxation.","Convinced Southern planters to end the importation of slaves."],
+  [2,"What characterized the economic relationship between Native Americans and the French?","A cooperative network focused primarily on the fur trade.","A hostile relationship driven by French expansion into agricultural lands.","A complete lack of interaction due to physical geographic barriers.","The widespread use of the encomienda system by French Jesuits."],
+
+  // PERIOD 3 (13% = 26 Questions)
+  [3,"What was the primary consequence of the French and Indian War for Great Britain?","It left Britain with massive debt, leading to new taxes on the colonies.","It resulted in the immediate loss of all British territory in North America.","It ushered in an era of unprecedented political autonomy for the colonies.","It caused the British Parliament to abolish the mercantilist system."],
+  [3,"The Proclamation of 1763 angered American colonists because it:","Banned colonial settlement west of the Appalachian Mountains.","Imposed a direct tax on all printed materials in the colonies.","Required colonists to provide housing and food for British troops.","Granted a monopoly on the tea trade to the East India Company."],
+  [3,"What was the main argument of the colonists against the Stamp Act?","Only their elected colonial assemblies had the right to tax them directly.","The tax rate was too high for the average farmer to afford.","The revenue was being used to fund wars in Europe rather than America.","It violated their right to freely trade with the French West Indies."],
+  [3,"Thomas Paine’s 'Common Sense' was highly influential because it:","Used clear, persuasive language to argue for independence and a republic.","Detailed a comprehensive military strategy for defeating the British army.","Proposed a specific framework for the United States Constitution.","Argued that the colonies should seek reconciliation with King George III."],
+  [3,"Which Enlightenment thinker's ideas about natural rights heavily influenced the Declaration of Independence?","John Locke","Thomas Hobbes","Jean-Jacques Rousseau","Voltaire"],
+  [3,"Why did the Continental Congress intentionally create a weak central government under the Articles of Confederation?","To prevent the tyranny they had experienced under British rule.","To ensure that large states could dominate national policy.","Because they lacked the financial resources to establish an executive branch.","To appease the French government in exchange for military aid."],
+  [3,"What was the significance of Shays' Rebellion?","It highlighted the inability of the Articles of Confederation to maintain order.","It forced the immediate abolition of slavery in Massachusetts.","It led to the successful establishment of an independent agrarian republic.","It proved that state militias were sufficient to handle domestic uprisings."],
+  [3,"The Great Compromise at the Constitutional Convention resolved the issue of:","Congressional representation for large and small states.","The counting of enslaved people for taxation and representation.","The balance of power between the executive and judicial branches.","The location of the new national capital."],
+  [3,"Alexander Hamilton’s financial plan included all of the following EXCEPT:","The complete abolition of all state and national debts.","The assumption of state debts by the federal government.","The creation of a National Bank.","The implementation of excise taxes and protective tariffs."],
+  [3,"What was the core difference between the Federalists and the Democratic-Republicans?","Federalists favored a strong central government; Democratic-Republicans favored states' rights.","Federalists supported an alliance with France; Democratic-Republicans supported Britain.","Federalists demanded an agrarian economy; Democratic-Republicans wanted industrialization.","Federalists opposed the Constitution; Democratic-Republicans wrote it."],
+  [3,"George Washington's Farewell Address explicitly warned against:","Permanent foreign alliances and the formation of political parties.","The abolition of slavery and the expansion of the industrial sector.","The expansion of the nation beyond the Mississippi River.","The creation of a standing national army."],
+  [3,"The Alien and Sedition Acts were passed by the Federalist government primarily to:","Suppress political opposition and restrict the rights of recent immigrants.","Protect the nation from infiltration by British spies.","Encourage the assimilation of Native Americans into white society.","Prevent the spread of abolitionist literature in the South."],
+  [3,"The Virginia and Kentucky Resolutions introduced the controversial idea that:","States had the right to nullify unconstitutional federal laws.","The Supreme Court held the sole power of judicial review.","The federal government could outlaw slavery in the territories.","States could legally secede from the Union at any time."],
+  [3,"Which battle was the turning point of the Revolutionary War that secured French intervention?","Saratoga","Yorktown","Lexington and Concord","Bunker Hill"],
+  [3,"The Northwest Ordinance of 1787 was significant because it:","Established a process for admitting new states and banned slavery in the territory.","Forced the removal of all Native Americans from the Ohio River Valley.","Granted voting rights to all white men regardless of property ownership.","Distributed free land to veterans of the Revolutionary War."],
+  [3,"What role did women play during the American Revolution?","They managed farms and businesses and formed groups like the Daughters of Liberty.","They served in large numbers as commissioned officers in the Continental Army.","They were granted the right to vote in local elections in most states.","They exclusively served as diplomats to European nations."],
+  [3,"The concept of 'Republican Motherhood' suggested that women:","Were responsible for raising virtuous, educated citizens for the new republic.","Should hold public office and participate directly in national politics.","Owed absolute obedience to their husbands in all matters.","Should prioritize working outside the home to support the economy."],
+  [3,"Why did Anti-Federalists strongly oppose the ratification of the Constitution?","They believed it gave too much power to the national government and lacked a Bill of Rights.","They wanted the United States to establish a constitutional monarchy.","They opposed the inclusion of the Three-Fifths Compromise.","They believed the national bank would destroy the agricultural economy."],
+  [3,"The XYZ Affair resulted in:","An undeclared naval war (Quasi-War) between the US and France.","A formal declaration of war against Great Britain.","The immediate impeachment of President John Adams.","The Louisiana Purchase."],
+  [3,"How did the French Revolution impact American domestic politics?","It deepened the partisan divide between Federalists and Democratic-Republicans.","It united the country in unanimous support for the French Republic.","It caused the complete collapse of the American manufacturing sector.","It led to a successful slave rebellion in the Southern states."],
+  [3,"The primary purpose of the Bill of Rights was to:","Protect individual liberties against potential abuses by the federal government.","Expand the powers of the federal government over the states.","Establish the legal framework for the abolition of slavery.","Ensure that all states had equal representation in the Senate."],
+  [3,"Which group primarily supported the Federalist Party?","Northern merchants, bankers, and wealthy property owners.","Southern yeoman farmers and frontier settlers.","Recent immigrants from Ireland and Germany.","Artisans and laborers in major urban centers."],
+  [3,"The Boston Tea Party was a direct protest against:","The British granting a monopoly to the East India Company.","The imposition of the Intolerable Acts.","The quartering of British troops in private homes.","The firing of British soldiers into an unarmed crowd."],
+  [3,"What was the purpose of the Committees of Correspondence?","To share information and coordinate resistance against British policies among the colonies.","To negotiate a peaceful resolution with Parliament.","To draft the Articles of Confederation.","To organize local militias for offensive campaigns."],
+  [3,"Which event proved to the British that the colonists could stand up to a professional army?","Bunker Hill","Trenton","Camden","Valley Forge"],
+  [3,"The Declaration of Independence relied heavily on the grievances against:","King George III","Parliament","The East India Company","The Anglican Church"],
+
+  // PERIOD 4 (13% = 26 Questions)
+  [4,"What was the significance of the Supreme Court ruling in Marbury v. Madison (1803)?","It established the principle of judicial review over federal laws.","It upheld the constitutionality of the National Bank.","It declared that states could not tax federal institutions.","It ruled that Native American tribes were sovereign nations."],
+  [4,"Why was Thomas Jefferson initially hesitant to authorize the Louisiana Purchase?","The Constitution did not explicitly grant the president power to purchase land.","He feared it would upset relations with the British Empire.","He believed the land was too vast and uninhabitable for farming.","He thought it would accelerate the industrialization of the United States."],
+  [4,"The Market Revolution of the early 19th century was characterized by:","The shift toward commercial agriculture and specialized industrial production.","A decline in urbanization as people moved to frontier farms.","The complete eradication of the institution of slavery.","A return to self-sufficient, localized barter economies."],
+  [4,"Which of the following was a major effect of the construction of the Erie Canal?","It dramatically lowered the cost of shipping goods between the Midwest and the East Coast.","It caused the economic decline of New York City in favor of New Orleans.","It completely eliminated the need for railroad construction in the North.","It directly led to the outbreak of the War of 1812."],
+  [4,"The primary objective of the Monroe Doctrine was to:","Prevent European powers from establishing new colonies in the Western Hemisphere.","Assert the right of the United States to expand into Canada and Mexico.","Form a permanent military alliance with Great Britain against France.","Justify the forced removal of Native Americans from the Southeast."],
+  [4,"The Missouri Compromise of 1820 attempted to resolve the issue of slavery by:","Admitting Missouri as a slave state, Maine as free, and drawing a line at 36°30'.","Applying popular sovereignty to all new territories acquired by the US.","Immediately emancipating all enslaved people born after 1820.","Banning the interstate slave trade entirely."],
+  [4,"The 'corrupt bargain' of 1824 refers to:","The alleged deal between Henry Clay and John Quincy Adams to secure the presidency.","Andrew Jackson's extensive use of the spoils system to reward political supporters.","The illegal purchase of Native American lands by federal agents.","The bribery scandal involving the recharter of the Second National Bank."],
+  [4,"Andrew Jackson's use of the presidential veto differed from his predecessors because he:","Used it frequently to assert executive power over Congress.","Only used it when he believed a bill was strictly unconstitutional.","Never actually used the veto power during his two terms.","Required the approval of his cabinet before vetoing any legislation."],
+  [4,"The Nullification Crisis of 1832 emerged primarily from a dispute over:","The enforcement of high protective tariffs in South Carolina.","The expansion of slavery into the newly acquired western territories.","The rechartering of the Second Bank of the United States.","The federal government's policy of Native American removal."],
+  [4,"The Trail of Tears was a direct result of which federal policy?","The Indian Removal Act of 1830.","The Dawes Severalty Act.","The Homestead Act.","The Northwest Ordinance."],
+  [4,"The Second Great Awakening influenced American society by:","Inspiring a wave of social reform movements, including abolition and temperance.","Promoting a return to the strict predestination doctrines of Calvinism.","Encouraging the separation of the Northern and Southern religious denominations.","Causing a massive decline in church attendance across the nation."],
+  [4,"William Lloyd Garrison's 'The Liberator' was significant because it advocated for:","The immediate, uncompensated emancipation of all enslaved people.","The gradual phasing out of slavery with compensation for slaveholders.","The colonization of freed African Americans in Liberia.","The expansion of slavery into the western territories."],
+  [4,"The Seneca Falls Convention of 1848 is most closely associated with the start of the:","Women’s rights and suffrage movement.","Temperance movement.","Abolitionist movement.","Public education reform movement."],
+  [4,"What was the purpose of the American System proposed by Henry Clay?","To unite the national economy through a bank, tariffs, and internal improvements.","To dismantle the federal government's role in the economy.","To promote the expansion of the plantation economy into the West.","To establish free trade agreements with European nations."],
+  [4,"The invention of the cotton gin by Eli Whitney led to:","A massive expansion of slavery due to the increased profitability of cotton.","The rapid industrialization of the Southern economy.","A sharp decline in the demand for enslaved labor.","The immediate abolition of the international slave trade."],
+  [4,"Which group primarily made up the workforce in the early Lowell textile mills?","Young, single women from rural New England farms.","Skilled male artisans and craftsmen.","Enslaved African Americans.","Recent immigrants from eastern Europe."],
+  [4,"The War of 1812 was primarily caused by:","British impressment of American sailors and interference with trade.","A border dispute between the US and Spanish Florida.","The French blockade of American ports on the Atlantic coast.","The desire to conquer and annex the entire Louisiana Territory."],
+  [4,"What was the main consequence of the Hartford Convention?","The demise of the Federalist Party after they appeared unpatriotic.","The secession of the New England states from the Union.","The immediate end of the War of 1812.","The passage of the Embargo Act of 1807."],
+  [4,"The concept of the 'cult of domesticity' idealized women as:","The moral guardians of the home and family.","Equal participants in the political and economic spheres.","The primary wage earners in the emerging factory system.","Aggressive advocates for radical social reform."],
+  [4,"Who was the most prominent advocate for the reform of public schools in the 1830s?","Horace Mann","Dorothea Dix","William Lloyd Garrison","Frederick Douglass"],
+  [4,"What was the primary goal of the temperance movement?","To reduce or eliminate the consumption of alcoholic beverages.","To abolish the institution of slavery.","To secure voting rights for women.","To reform the brutal conditions in prisons and asylums."],
+  [4,"The Transcendentalist movement, led by figures like Emerson and Thoreau, emphasized:","Individualism, self-reliance, and a deep connection with nature.","Strict adherence to traditional religious dogmas and rituals.","The importance of accumulating material wealth and industrial progress.","The necessity of a strong, centralized national government."],
+  [4,"McCulloch v. Maryland (1819) strengthened the federal government by establishing that:","States cannot tax federal agencies, upholding the supremacy of federal law.","The federal government can strictly regulate all intrastate commerce.","Native American tribes are exempt from state jurisdiction.","Labor unions have the legal right to organize and strike."],
+  [4,"What was a major push factor for Irish immigration to the US in the 1840s?","The devastating potato famine.","Political persecution following failed democratic revolutions.","The promise of free land under the Homestead Act.","A desire to escape religious persecution by the Catholic Church."],
+  [4,"Nativist organizations, such as the Know-Nothing Party, primarily targeted:","Irish and German Catholic immigrants.","Enslaved African Americans in the South.","Native Americans living on the frontier.","Wealthy British merchants operating in northern cities."],
+  [4,"Utopian communities like Brook Farm and Oneida emerged as a response to:","The social and economic disruptions caused by the Market Revolution.","The strict moral regulations of the Second Great Awakening.","The political corruption of the Jacksonian era.","The expansion of slavery into the newly acquired western territories."],
+
+  // PERIOD 5 (13% = 26 Questions)
+  [5,"The ideology of Manifest Destiny was used to justify:","The westward expansion of the US to the Pacific Ocean.","The strict containment of slavery to the South.","The immediate assimilation of Native Americans.","The establishment of an overseas American empire."],
+  [5,"Which event directly sparked the Mexican-American War?","A dispute over the southern boundary of Texas.","The Mexican attack on the Alamo.","The publication of the Ostend Manifesto.","The US annexation of California."],
+  [5,"The Wilmot Proviso controversially proposed that:","Slavery be banned in any territory acquired from Mexico.","California be admitted as a slave state.","The Missouri Compromise line be extended to the Pacific.","Popular sovereignty decide the fate of all new territories."],
+  [5,"A major component of the Compromise of 1850 that outraged Northerners was the:","Passage of a much stricter Fugitive Slave Act.","Abolition of the slave trade in Washington D.C.","Admission of California as a free state.","Implementation of popular sovereignty in Utah and New Mexico."],
+  [5,"Uncle Tom's Cabin heavily influenced public opinion by:","Personalizing the brutal reality of slavery for Northern readers.","Providing a historical defense of the plantation system.","Arguing for the immediate colonization of freedmen in Africa.","Exposing the political corruption of the Buchanan administration."],
+  [5,"The Kansas-Nebraska Act (1854) increased sectional tensions because it:","Repealed the Missouri Compromise by allowing popular sovereignty.","Mandated the immediate abolition of slavery in the territories.","Admitted Kansas to the Union as a free state against its will.","Banned the formation of the Republican Party."],
+  [5,"The Supreme Court's ruling in Dred Scott v. Sandford (1857) stated that:","African Americans were not citizens and Congress could not ban slavery in territories.","Enslaved people who lived in free territories were automatically freed.","The Fugitive Slave Act was unconstitutional.","Popular sovereignty was the only legal method for determining slave status."],
+  [5,"John Brown's raid on Harper's Ferry was significant because it:","Convinced many Southerners that the North intended to violently end slavery.","Successfully sparked a massive slave rebellion in Virginia.","Led to the immediate secession of South Carolina.","Prompted Congress to pass the Crittenden Compromise."],
+  [5,"The primary reason the Southern states seceded following the Election of 1860 was:","The election of Abraham Lincoln, a candidate opposed to the expansion of slavery.","The immediate passage of a federal law abolishing slavery.","The invasion of the South by Union troops.","A dispute over the enforcement of high protective tariffs."],
+  [5,"At the start of the Civil War, Abraham Lincoln's primary stated objective was to:","Preserve the Union, with or without ending slavery.","Immediately abolish slavery across the entire nation.","Punish the Southern states for treason.","Expand the borders of the United States into Mexico."],
+  [5,"The Emancipation Proclamation was a turning point because it:","Shifted the war's purpose to a moral crusade against slavery, preventing European intervention.","Freed all enslaved people in the border states that remained loyal to the Union.","Led to the immediate surrender of the Confederate Army.","Granted full voting rights to African American men."],
+  [5,"Which battle is considered the bloodiest single day in American military history and prompted the Emancipation Proclamation?","Antietam","Gettysburg","Vicksburg","Bull Run"],
+  [5,"What was the significance of the Union victory at Vicksburg in 1863?","It gave the Union complete control of the Mississippi River, splitting the Confederacy.","It successfully ended General Lee's invasion of the North.","It forced the Confederacy to evacuate its capital at Richmond.","It marked the first time African American troops saw major combat."],
+  [5,"General William T. Sherman's 'March to the Sea' utilized the strategy of:","Total war, destroying civilian infrastructure to break the South's will to fight.","Guerrilla warfare, relying on hit-and-run tactics against Confederate forces.","Naval blockades, starving out major Southern port cities.","Diplomatic negotiation, offering lenient terms for surrender."],
+  [5,"The 13th Amendment to the Constitution achieved what goal?","The permanent abolition of slavery and involuntary servitude.","The granting of citizenship and equal protection to all persons born in the US.","The prohibition of denying the right to vote based on race.","The establishment of the Freedmen's Bureau."],
+  [5,"What was the primary purpose of the 14th Amendment?","To guarantee citizenship and equal protection under the law for all persons born in the US.","To grant suffrage to all adult males regardless of race.","To officially end the Reconstruction era.","To outline the process for readmitting Southern states to the Union."],
+  [5,"The 15th Amendment explicitly prohibited the denial of voting rights based on:","Race, color, or previous condition of servitude.","Gender or sex.","Property ownership or wealth.","Literacy or educational attainment."],
+  [5,"What was the main goal of the Radical Republicans during Reconstruction?","To fundamentally transform Southern society and protect the rights of freedmen.","To rapidly reintegrate the Southern states with minimal punishment.","To establish a permanent military dictatorship in the South.","To physically relocate freed African Americans to the western territories."],
+  [5,"The sharecropping system that emerged in the post-war South often resulted in:","A cycle of perpetual debt that tied freedmen to the land.","Rapid economic advancement and land ownership for African Americans.","The complete destruction of the Southern cotton economy.","A mass migration of freedmen to Northern industrial cities."],
+  [5,"Why was President Andrew Johnson impeached by the House of Representatives?","He violated the Tenure of Office Act by firing the Secretary of War.","He actively participated in the Ku Klux Klan.","He attempted to illegally fund the Freedmen's Bureau.","He ordered the military occupation of Northern states."],
+  [5,"The phrase 'Redemption' in the context of the post-Civil War South refers to:","The return of white Democratic control to Southern state governments.","The spiritual revival of formerly enslaved communities.","The economic recovery of the Southern agricultural sector.","The passage of the Civil Rights Act of 1875."],
+  [5,"The Compromise of 1877 is historically significant because it:","Effectively ended Reconstruction by removing federal troops from the South.","Settled the disputed presidential election in favor of Samuel Tilden.","Granted amnesty to all former Confederate leaders.","Established the 'separate but equal' legal doctrine."],
+  [5,"What role did the Freedmen's Bureau play during Reconstruction?","It provided food, medical care, and established schools for freedmen and poor whites.","It organized the mass migration of African Americans to the North.","It successfully redistributed millions of acres of plantation land to freedmen.","It enforced the strict segregation of public facilities in the South."],
+  [5,"How did the Supreme Court's decisions in the Slaughterhouse Cases (1873) affect the 14th Amendment?","They narrowly interpreted the amendment, severely weakening protections for civil rights.","They broadly expanded the power of the federal government to protect individuals.","They explicitly outlawed the use of poll taxes and literacy tests.","They declared the Civil Rights Act of 1866 unconstitutional."],
+  [5,"Which group became the primary target of the Ku Klux Klan during Reconstruction?","African Americans who attempted to exercise their political rights.","Northern factory owners who relocated to the South.","Former Confederate soldiers who refused to swear allegiance to the Union.","Recent immigrants settling in Southern port cities."],
+  [5,"The term 'carpetbaggers' was a derogatory label used by white Southerners to describe:","Northerners who moved South during Reconstruction for political or economic gain.","Freedmen who sought political office.","White Southerners who supported the Republican Party.","Federal military commanders stationed in the South."],
+
+  // PERIOD 6 (13% = 26 Questions)
+  [6,"The completion of the Transcontinental Railroad in 1869 had which major economic impact?","It integrated national markets and spurred rapid industrial and western development.","It immediately collapsed the agricultural economy of the Midwest.","It ended the era of massive European immigration to the East Coast.","It caused a drastic decline in the profitability of the steel industry."],
+  [6,"What was the primary purpose of the Homestead Act of 1862?","To encourage western settlement by offering 160 acres of free land to farmers.","To provide land grants for the construction of transcontinental railroads.","To establish reservations for Native American tribes displaced by white settlers.","To allocate federal lands for the creation of agricultural colleges."],
+  [6,"The Dawes Severalty Act of 1887 was an attempt to assimilate Native Americans by:","Breaking up tribal reservations into individual farming plots.","Sending Native American children to federally funded boarding schools.","Granting full US citizenship to all Native Americans.","Encouraging the preservation of traditional indigenous religions like the Ghost Dance."],
+  [6,"What was the significance of the Battle of Little Bighorn in 1876?","It was a major Native American victory, but led to a massive US military crackdown.","It effectively ended all armed resistance by Plains Indians.","It resulted in the immediate signing of a permanent peace treaty.","It was the first conflict where the US military used Gatling guns."],
+  [6,"The Ghost Dance movement of the late 1880s represented:","A spiritual attempt to restore traditional Native American ways of life and remove white settlers.","A highly organized military alliance of multiple Plains Indian tribes.","A willing acceptance of assimilation into white American culture.","A political movement seeking representation in the US Congress."],
+  [6,"Andrew Carnegie's concept of the 'Gospel of Wealth' argued that:","The wealthy had a moral obligation to use their fortunes for the public good.","Unfettered capitalism was a sin against Christian teachings.","The government should heavily tax the rich to distribute wealth evenly.","Labor unions were essential to maintaining a fair and moral economy."],
+  [6,"During the Gilded Age, the theory of Social Darwinism was frequently used to:","Justify extreme wealth inequality and unregulated laissez-faire capitalism.","Argue for extensive government regulation of monopolies.","Promote social welfare programs for the urban poor.","Support the rights of workers to collectively bargain."],
+  [6,"Which of the following business practices is associated with John D. Rockefeller's Standard Oil?","Horizontal integration to dominate the oil refining industry.","Vertical integration to control the entire steel production process.","The establishment of utopian company towns for workers.","A strict refusal to form trusts or holding companies."],
+  [6,"The Knights of Labor differed from the American Federation of Labor (AFL) because the Knights:","Attempted to organize all workers, including unskilled, women, and minorities.","Focused strictly on 'bread and butter' issues like wages and hours.","Exclusively admitted skilled, white male craftsmen.","Advocated for violent revolution to overthrow capitalism."],
+  [6,"What was the primary cause of the massive labor strikes of the late 19th century, such as the Pullman Strike?","Repeated wage cuts during economic depressions and poor working conditions.","The federal government's refusal to pass the Sherman Antitrust Act.","The forced integration of African American workers into white unions.","The introduction of an eight-hour workday by corporate management."],
+  [6,"How did the federal government generally respond to major labor strikes during the Gilded Age?","By intervening on the side of management, often using troops to break the strikes.","By acting as a neutral arbitrator between labor and capital.","By passing immediate legislation to meet the workers' demands.","By arresting the corporate leaders who instigated the conflicts."],
+  [6,"The 'New Immigrants' of the late 19th and early 20th centuries came primarily from:","Southern and Eastern Europe.","Northern and Western Europe.","East Asia.","Latin America."],
+  [6,"Political machines like Tammany Hall maintained power in urban areas by:","Providing essential services and jobs to immigrants in exchange for votes.","Relying strictly on honest and transparent campaign financing.","Advocating for the prohibition of alcohol.","Appealing primarily to wealthy, native-born Protestant elites."],
+  [6,"Jane Addams and the settlement house movement primarily aimed to:","Assist immigrants with assimilation, education, and social services.","Aggressively evangelize the urban poor to Protestantism.","Deport radical labor organizers back to Europe.","Campaign for the strict restriction of all immigration."],
+  [6,"The Supreme Court's ruling in Plessy v. Ferguson (1896) established the doctrine of:","Separate but equal, legally validating Jim Crow segregation.","Birthright citizenship for all persons born in the United States.","The unconstitutionality of literacy tests and poll taxes.","The right of states to regulate interstate commerce."],
+  [6,"What was the primary goal of the Populist Party in the 1890s?","To challenge the power of corporate monopolies and advocate for struggling farmers.","To promote the gold standard and high protective tariffs.","To deregulate the banking and railroad industries completely.","To halt the massive influx of European immigrants."],
+  [6,"William Jennings Bryan's 'Cross of Gold' speech famously advocated for:","The unlimited coinage of silver to cause inflation and help debtors.","Strict adherence to the gold standard to stabilize the economy.","The imperialist annexation of the Philippines.","The aggressive busting of industrial trusts."],
+  [6,"Which law was the first federal attempt to regulate monopolistic business practices?","Sherman Antitrust Act","Interstate Commerce Act","Pendleton Civil Service Act","Clayton Antitrust Act"],
+  [6,"The Pendleton Civil Service Act (1883) was passed in response to:","The assassination of President James A. Garfield by a disappointed office-seeker.","The widespread corruption of the Credit Mobilier scandal.","The violent outcome of the Haymarket Square Riot.","The massive inflation caused by the printing of greenbacks."],
+  [6,"What was a primary characteristic of the Gilded Age economy?","Rapid industrial expansion accompanied by frequent financial panics and severe inequality.","Steady, even economic growth that equally benefited all social classes.","A massive decline in manufacturing output due to government over-regulation.","The complete disappearance of agricultural production in the United States."],
+  [6,"Ida B. Wells is best known for her activism regarding:","An anti-lynching crusade exposing racial violence in the South.","The promotion of birth control access for poor women.","The push for a constitutional amendment granting women's suffrage.","The organization of the militant Industrial Workers of the World."],
+  [6,"What was the purpose of the Chinese Exclusion Act of 1882?","To prohibit all immigration of Chinese laborers.","To force the relocation of Chinese immigrants to western reservations.","To deny birthright citizenship to children of Chinese immigrants.","To establish quotas on all Asian immigration."],
+  [6,"The 'Turner Thesis' argued that the American frontier:","Was the defining factor in shaping American democracy and character.","Was a barren wasteland that hindered the nation's economic growth.","Should be closed immediately to protect Native American sovereignty.","Proved that America required overseas colonies to survive."],
+  [6,"Booker T. Washington's approach to civil rights emphasized:","Economic self-help and vocational training rather than immediate political equality.","Aggressive legal challenges to overturn Jim Crow segregation.","The immediate demand for full social and political equality.","The mass emigration of African Americans to Africa."],
+  [6,"W.E.B. Du Bois fiercely disagreed with Booker T. Washington, instead advocating for:","The 'Talented Tenth' to pursue higher education and demand immediate equal rights.","The acceptance of segregation as a temporary necessity.","The establishment of independent black agricultural communes.","The reliance on white philanthropy to fund industrial schools."],
+  [6,"The Interstate Commerce Act was primarily designed to regulate the rates of:","Railroads","Steel monopolies","Standard Oil","Textile mills"],
+
+  // PERIOD 7 (14% = 28 Questions)
+  [7,"Muckrakers like Upton Sinclair and Ida Tarbell were journalists who:","Exposed political corruption and corporate abuses to spark public reform.","Wrote sensationalist yellow journalism to start the Spanish-American War.","Promoted the extreme laissez-faire economic policies of the Gilded Age.","Defended the actions of political machines like Tammany Hall."],
+  [7,"Which of the following was a primary motivation for American imperialism in the 1890s?","The desire for new overseas markets and naval coaling stations.","A need to acquire new land for mass European immigration.","The goal of spreading democratic institutions to the nations of Europe.","A commitment to upholding the Monroe Doctrine globally."],
+  [7,"The Spanish-American War resulted in the United States acquiring which territories?","The Philippines, Puerto Rico, and Guam.","Cuba, Hawaii, and Alaska.","The Dominican Republic, Haiti, and the Virgin Islands.","Panama, Nicaragua, and Mexico."],
+  [7,"What was the immediate consequence of the US annexation of the Philippines?","A brutal, multi-year guerrilla war against Filipino nationalists.","The immediate granting of full statehood to the archipelago.","A permanent military alliance with the Japanese Empire.","The peaceful establishment of a model democratic republic."],
+  [7,"The Roosevelt Corollary to the Monroe Doctrine stated that the US had the right to:","Intervene militarily in Latin American nations to maintain order and collect debts.","Annex any territory in the Western Hemisphere by force.","Prevent any Asian immigration into the United States.","Establish free trade agreements across all of South America."],
+  [7,"During the Progressive Era, the initiative, referendum, and recall were reforms designed to:","Give citizens more direct control over the legislative process and politicians.","Increase the power of urban political machines.","Ensure that only wealthy property owners could vote.","Strip the federal government of its regulatory authority."],
+  [7,"The Triangle Shirtwaist Factory fire of 1911 directly resulted in:","The passage of stricter workplace safety and fire code regulations in New York.","The immediate federal banning of all child labor.","The collapse of the American Federation of Labor.","The implementation of a national minimum wage law."],
+  [7,"Which constitutional amendment granted women the right to vote?","The 19th Amendment","The 16th Amendment","The 17th Amendment","The 18th Amendment"],
+  [7,"What was the primary purpose of the Federal Reserve Act of 1913?","To create a decentralized national banking system to regulate the money supply.","To completely dismantle the power of large Wall Street banks.","To return the United States to a strict gold standard.","To provide direct federal loans to struggling farmers."],
+  [7,"Which event was the immediate catalyst for the United States entering World War I?","The interception of the Zimmermann Telegram and unrestricted submarine warfare.","The assassination of Archduke Franz Ferdinand.","The sinking of the RMS Lusitania in 1915.","The Russian Bolshevik Revolution."],
+  [7,"During WWI, the federal government restricted civil liberties primarily through the:","Espionage and Sedition Acts.","Alien and Sedition Acts.","Patriot Act.","Taft-Hartley Act."],
+  [7,"The Great Migration refers to the mass movement of:","African Americans from the rural South to Northern industrial cities.","Dust Bowl farmers from the Great Plains to California.","European immigrants from the East Coast to the western frontier.","Middle-class whites from urban centers to the suburbs."],
+  [7,"Woodrow Wilson's Fourteen Points included a proposal for the creation of:","An international peacekeeping organization called the League of Nations.","A permanent military alliance between the US, Britain, and France.","A massive system of punitive war reparations against Germany.","The unconditional surrender of the Central Powers."],
+  [7,"Why did the US Senate ultimately reject the Treaty of Versailles?","Isolationist senators feared the League of Nations would drag the US into future wars.","The treaty did not punish Germany harshly enough for starting the war.","President Wilson refused to sign the treaty after suffering a stroke.","It forced the US to give up its newly acquired overseas colonies."],
+  [7,"The First Red Scare (1919-1920) was primarily fueled by:","Fears of communist infiltration following the Russian Revolution and a wave of strikes.","The sudden influx of German immigrants after WWI.","The growing political power of the Ku Klux Klan.","The uncovering of a massive Soviet spy ring in Washington D.C."],
+  [7,"The National Origins Act of 1924 aimed to restrict immigration by:","Establishing strict quotas that heavily favored Northern and Western Europeans.","Banning all immigration from the Western Hemisphere.","Requiring all immigrants to pass a rigorous literacy test.","Outlawing the entry of anyone associated with a labor union."],
+  [7,"The Harlem Renaissance is best described as:","A flourishing of African American art, literature, and music in the 1920s.","A political movement demanding the immediate end of Jim Crow laws.","The mass migration of black farmers to New York City.","A period of intense racial violence and rioting in northern cities."],
+  [7,"Which factor was a major underlying cause of the Great Depression?","Overproduction of goods and reckless stock market speculation fueled by easy credit.","The federal government's massive spending on social welfare programs.","The strict regulation of the banking industry by the Federal Reserve.","A sudden, global shortage of agricultural products."],
+  [7,"President Herbert Hoover's initial response to the onset of the Great Depression was based on his belief in:","Voluntary cooperation by businesses and rugged individualism.","Massive federal deficit spending to create public works jobs.","The immediate nationalization of the banking and railroad industries.","Providing direct cash relief to unemployed citizens."],
+  [7,"Franklin D. Roosevelt's New Deal drastically changed American government by:","Expanding the role of the federal government in the economy and creating a social safety net.","Dismantling federal agencies to allow state governments more control.","Implementing extreme socialist policies that eliminated private property.","Focusing entirely on balancing the federal budget through tax hikes."],
+  [7,"The Social Security Act of 1935 established a federal program to provide:","Pensions for the elderly, unemployment insurance, and aid for the disabled.","Free universal healthcare for all American citizens.","Guaranteed federal jobs for any unemployed worker.","Subsidies for farmers who agreed to reduce crop production."],
+  [7,"During the 1930s, the US pursued a foreign policy primarily characterized by:","Isolationism and neutrality to avoid involvement in European conflicts.","Aggressive military intervention to stop the spread of fascism.","The active formation of alliances with democratic nations.","The expansion of the American empire in the Pacific."],
+  [7,"The Japanese attack on Pearl Harbor on December 7, 1941, directly resulted in:","The immediate entry of the United States into World War II.","The forced relocation of Japanese Americans to internment camps.","The dropping of the first atomic bomb.","The signing of the Atlantic Charter by FDR and Churchill."],
+  [7,"During WWII, Executive Order 9066 authorized the:","Forced internment of over 100,000 Japanese Americans on the West Coast.","Desegregation of the United States armed forces.","Creation of the top-secret Manhattan Project.","Banning of racial discrimination in the defense industry."],
+  [7,"The 'Double V' campaign during WWII stood for African Americans fighting for:","Victory against fascism abroad and victory against racism at home.","Victory in both the European and Pacific theaters of war.","Victory for the Allied Powers and the survival of the Soviet Union.","Victory over economic depression and political isolationism."],
+  [7,"The Manhattan Project was the codename for the US effort to:","Develop the first atomic bombs.","Break the complex Japanese naval codes.","Plan the D-Day invasion of Normandy.","Design the post-war United Nations charter."],
+  [7,"Women contributed to the WWII effort primarily by:","Joining the industrial workforce in massive numbers (e.g., Rosie the Riveter).","Serving in direct combat roles on the front lines.","Organizing widespread anti-war protests on college campuses.","Leading the diplomatic negotiations at the Yalta Conference."],
+  [7,"What was the main purpose of the bracero program during WWII?","To import temporary agricultural workers from Mexico to alleviate labor shortages.","To recruit Native Americans to serve as code talkers in the Pacific.","To train African American pilots, known as the Tuskegee Airmen.","To relocate urban workers to new defense plants in the Sunbelt."],
+
+  // PERIOD 8 (14% = 28 Questions)
+  [8,"The Truman Doctrine established the US foreign policy of:","Containment, committing to support free peoples resisting communist subjugation.","Massive retaliation, threatening nuclear war against any Soviet aggression.","Détente, seeking peaceful coexistence and arms reduction with the USSR.","Isolationism, withdrawing all American troops from Europe."],
+  [8,"The Marshall Plan aimed to prevent the spread of communism by:","Providing massive economic aid to rebuild the devastated economies of Western Europe.","Forming a mutual defense pact with democratic nations (NATO).","Engaging in a massive buildup of conventional military forces.","Dropping supplies into blockaded cities, as seen in Berlin."],
+  [8,"The Second Red Scare and McCarthyism were characterized by:","Aggressive, often unsubstantiated accusations of communist infiltration in the US government.","A highly successful effort to uncover hundreds of actual Soviet spies.","The complete outlawing of the Democratic Party.","A focus entirely on exposing communists in the Hollywood film industry."],
+  [8,"What was the primary result of the Korean War (1950-1953)?","An armistice was signed, leaving the Korean peninsula divided near the 38th parallel.","The US successfully unified Korea under a democratic government.","The Soviet Union directly annexed North Korea.","The use of atomic weapons was normalized in limited conflicts."],
+  [8,"The GI Bill (Servicemen's Readjustment Act of 1944) fueled the post-war economic boom by providing veterans with:","Funds for college education, low-cost mortgages, and business loans.","A guaranteed, permanent job in the federal government.","Free healthcare for life for themselves and their families.","A one-time, massive cash bonus upon discharge."],
+  [8,"The 1950s saw a massive demographic shift characterized by the rapid growth of:","Suburban communities like Levittown.","Inner-city tenement housing.","Rural farming populations in the Midwest.","Expatriate communities in Western Europe."],
+  [8,"In his farewell address, President Eisenhower warned the nation against the growing power of the:","Military-industrial complex.","Communist Party of the United States.","Unregulated banking industry.","Civil rights movement."],
+  [8,"The Supreme Court's landmark decision in Brown v. Board of Education (1954) ruled that:","Racial segregation in public schools was inherently unequal and unconstitutional.","The 'separate but equal' doctrine applied only to elementary schools.","Busing was an illegal method for achieving school integration.","The federal government could not interfere with state education policies."],
+  [8,"The Montgomery Bus Boycott of 1955 was sparked by the arrest of:","Rosa Parks.","Martin Luther King Jr.","Malcolm X.","John Lewis."],
+  [8,"During the Cuban Missile Crisis, the United States responded to the discovery of Soviet nuclear missiles in Cuba by:","Implementing a naval 'quarantine' (blockade) of the island.","Launching an immediate airstrike against the missile sites.","Authorizing the Bay of Pigs invasion.","Dropping a warning atomic bomb on an uninhabited island."],
+  [8,"Martin Luther King Jr.'s strategy for achieving civil rights relied primarily on:","Nonviolent civil disobedience and peaceful mass protests.","Armed self-defense and black nationalism.","Lengthy legal battles in federal courts exclusively.","The gradual accommodation of Jim Crow laws."],
+  [8,"The Civil Rights Act of 1964 was a monumental piece of legislation because it:","Banned discrimination in public accommodations and employment based on race, sex, or religion.","Eliminated the use of literacy tests for voter registration.","Established affirmative action quotas for all federal agencies.","Outlawed the poll tax in federal elections."],
+  [8,"What was the primary goal of President Lyndon B. Johnson's 'Great Society' programs?","To eliminate poverty and racial injustice through extensive domestic reforms.","To rapidly escalate the American military presence in Vietnam.","To reduce the size of the federal government and cut taxes.","To win the Space Race by landing a man on the moon."],
+  [8,"The Gulf of Tonkin Resolution of 1964 significantly altered US involvement in Vietnam by:","Granting the president broad authority to escalate military action without a formal declaration of war.","Mandating the immediate withdrawal of all American troops.","Authorizing the use of nuclear weapons against North Vietnam.","Dividing Vietnam into two separate nations at the 17th parallel."],
+  [8,"The Tet Offensive in 1968 was a turning point in the Vietnam War because it:","Shattered public confidence in the war effort and widened the 'credibility gap'.","Resulted in a decisive military defeat that forced North Vietnam to surrender.","Prompted the Soviet Union to directly enter the conflict.","Led directly to the assassination of President John F. Kennedy."],
+  [8,"Which organization, founded by Betty Friedan, led the second-wave feminist movement in the 1960s?","National Organization for Women (NOW)","Student Nonviolent Coordinating Committee (SNCC)","Women's Christian Temperance Union (WCTU)","Equal Rights Amendment Coalition"],
+  [8,"The Chicano Movement, led by figures like Cesar Chavez, primarily focused on:","Securing labor rights for Mexican American farmworkers and promoting cultural pride.","Demanding the return of lands lost in the Mexican-American War.","Advocating for the strict limitation of immigration from Latin America.","Establishing an independent Hispanic nation in the Southwest."],
+  [8,"The Stonewall Riots of 1969 are widely considered the catalyst for the modern:","Gay rights liberation movement.","Anti-war protest movement.","Environmentalist movement.","Native American sovereignty movement."],
+  [8,"President Richard Nixon's policy of 'Vietnamization' involved:","Gradually withdrawing US troops while training South Vietnamese forces to take over combat.","Massively increasing the number of American ground troops.","Using nuclear weapons to force a swift end to the war.","Negotiating a direct alliance with communist China."],
+  [8,"The Watergate scandal resulted in the unprecedented:","Resignation of President Richard Nixon.","Impeachment and removal of a sitting president.","Abolition of the executive branch's veto power.","Suspension of the upcoming presidential election."],
+  [8,"In 1973, the Supreme Court case Roe v. Wade established a woman's constitutional right to:","Have an abortion under the right to privacy.","Access birth control without a prescription.","Receive equal pay for equal work.","Serve in combat roles in the military."],
+  [8,"The American economy in the 1970s was plagued by 'stagflation,' which is a combination of:","High inflation and high unemployment.","Rapid economic growth and high inflation.","Deflation and a booming stock market.","Low unemployment and stagnant wages."],
+  [8,"President Jimmy Carter's foreign policy was notably guided by a commitment to:","Human rights.","Massive military buildup.","Strict isolationism.","Imperialist expansion."],
+  [8,"The Iranian Hostage Crisis severely damaged the presidency of:","Jimmy Carter.","Richard Nixon.","Gerald Ford.","Ronald Reagan."],
+  [8,"The Sunbelt phenomenon refers to the post-WWII population and economic shift toward the:","South and West.","Northeast and Midwest.","Pacific Northwest.","New England states."],
+  [8,"Which 1962 book by Rachel Carson helped launch the modern environmental movement by exposing the dangers of pesticides?","Silent Spring","The Feminine Mystique","The Other America","Unsafe at Any Speed"],
+  [8,"The Black Panther Party differed from mainstream civil rights organizations by advocating for:","Armed self-defense and radical black nationalism.","Complete reliance on the federal court system.","Strict nonviolent resistance in all situations.","Integration into white, middle-class society."],
+  [8,"The War Powers Act of 1973 was passed by Congress to:","Limit the president's ability to commit US troops abroad without congressional approval.","Give the president absolute authority to declare war.","Authorize the immediate invasion of Cambodia.","Ensure the military budget could never be reduced."],
+
+  // PERIOD 9 (5% = 10 Questions)
+  [9,"The 'Reagan Revolution' of the 1980s was characterized by a conservative agenda that emphasized:","Tax cuts, deregulation of business, and a massive increase in military spending.","The rapid expansion of federal welfare programs.","A policy of strict détente and arms reduction with the Soviet Union.","The nationalization of major industries and banks."],
+  [9,"What was a major consequence of the Persian Gulf War (1991)?","A successful US-led coalition expelled Iraqi forces from Kuwait.","Saddam Hussein was immediately removed from power and executed.","The US permanently annexed the oil fields of the Middle East.","The United Nations was dissolved due to its failure to act."],
+  [9,"The North American Free Trade Agreement (NAFTA), signed in 1993, aimed to:","Eliminate trade barriers between the US, Canada, and Mexico.","Create a single currency for the Western Hemisphere.","Prevent the outsourcing of American manufacturing jobs.","Establish a mutual defense pact against European aggression."],
+  [9,"Which technological revolution fundamentally transformed the global economy in the late 20th century?","The widespread adoption of personal computers and the internet.","The invention of the assembly line and mass production.","The development of commercial nuclear fusion power.","The completion of the interstate highway system."],
+  [9,"The 2000 presidential election between George W. Bush and Al Gore was highly controversial because it:","Was ultimately decided by a Supreme Court ruling halting the Florida recount.","Resulted in an Electoral College tie that was decided by the House.","Featured widespread, proven voter fraud across several states.","Was the first election where a third-party candidate won the popular vote."],
+  [9,"How did US foreign policy drastically shift following the September 11, 2001 terrorist attacks?","The US launched a global 'War on Terror,' leading to invasions of Afghanistan and Iraq.","The US retreated into strict isolationism to protect the homeland.","The US formed a permanent military alliance with the Russian Federation.","The US immediately withdrew all military forces from the Middle East."],
+  [9,"The USA PATRIOT Act, passed shortly after 9/11, expanded the federal government's power to:","Conduct surveillance and investigate suspected terrorists.","Detain American citizens indefinitely without trial.","Declare war without congressional approval.","Restrict all immigration from Muslim-majority countries."],
+  [9,"The Great Recession of 2008 was triggered primarily by the collapse of the:","Housing market due to risky subprime mortgage lending.","Tech industry following the burst of the dot-com bubble.","Global oil supply due to conflicts in the Middle East.","American automotive industry's manufacturing base."],
+  [9,"The demographic makeup of the United States changed significantly in the late 20th and early 21st centuries due to a massive increase in immigration primarily from:","Latin America and Asia.","Western and Northern Europe.","Africa and the Middle East.","Eastern Europe and Russia."],
+  [9,"The election of Barack Obama in 2008 was historically significant because he was the first:","African American President of the United States.","President to lose the popular vote but win the electoral college.","President to be elected as an independent candidate.","President to serve without a vice president."]
+];
+
+// App State
+let currentQuestions = [];
+let currentIndex = 0;
+let myScore = 0;
+let opponentScore = 0;
+
+// Multiplayer Sync State
+let peer = null;
+let conn = null;
+let isHost = false;
+let isMultiplayer = false;
+let myAnswer = null;
+let oppAnswer = null;
+
+// --- Setup System & UI Navigation ---
+function showScreen(screenId) {
+  document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+}
+
+function mountSettings(targetId) {
+  const target = document.getElementById(targetId);
+  const settingsModule = document.getElementById('game-settings-module');
+  settingsModule.classList.remove('hidden');
+  target.appendChild(settingsModule);
+}
+
+function goToSP() {
+  mountSettings('sp-settings-target');
+  showScreen('screen-sp-setup');
+}
+
+document.querySelectorAll('#period-toggles button').forEach(b => {
+  //b.classList.add('active');
+  b.addEventListener('click', (e) => { e.target.classList.toggle('active'); });
+});
+
+function selectAllPeriods() {
+  document.querySelectorAll('#period-toggles button').forEach(b => b.classList.add('active'));
+}
+
+function getActivePeriods() {
+  const active = new Set();
+  document.querySelectorAll('#period-toggles button.active').forEach(b => active.add(parseInt(b.dataset.period)));
+  return active;
+}
+
+function generateQuizBank(limit) {
+  const activePeriods = getActivePeriods();
+  const filtered = rawBank.filter(item => activePeriods.has(item[0]));
+  if (filtered.length === 0) { alert("Select at least one period!"); return []; }
+  
+  filtered.sort(() => Math.random() - 0.5);
+  const selected = filtered.slice(0, Math.min(limit, filtered.length));
+  
+  return selected.map(q => {
+    const options = [q[2], q[3], q[4], q[5]];
+    options.sort(() => Math.random() - 0.5);
+    return { period: q[0], question: q[1], options: options, answer: q[2] };
+  });
+}
+
+// --- Single Player ---
+function startSinglePlayer() {
+  const count = parseInt(document.getElementById('q-count').value);
+  currentQuestions = generateQuizBank(count);
+  if (currentQuestions.length === 0) return;
+  isMultiplayer = false;
+  startGameUI();
+}
+
+// --- Multiplayer (PeerJS) ---
+function startHosting() {
+  mountSettings('host-settings-target');
+  showScreen('screen-mp-host');
+  document.getElementById('room-code').innerText = "....";
+  
+  peer = new Peer(generateRoomCode());
+  
+  peer.on('open', (id) => {
+    document.getElementById('room-code').innerText = id;
+    document.getElementById('host-status').innerText = "Waiting for opponent to join...";
+  });
+
+  peer.on('connection', (connection) => {
+    conn = connection;
+    isHost = true;
+    setupConnection();
+  });
+}
+
+function joinGame() {
+  const code = document.getElementById('join-code-input').value.toUpperCase();
+  if (code.length !== 4) return alert("Invalid 4-Letter code.");
+  
+  document.getElementById('join-btn').disabled = true;
+  document.getElementById('join-status-msg').innerText = "Connecting to Host...";
+
+  peer = new Peer();
+  peer.on('open', () => {
+    conn = peer.connect(code);
+    isHost = false;
+    setupConnection();
+  });
+}
+
+function setupConnection() {
+  conn.on('open', () => {
+    isMultiplayer = true;
+    if (isHost) {
+      document.getElementById('host-status').innerText = "Opponent Connected!";
+      document.getElementById('host-status').style.color = "var(--correct)";
+      document.getElementById('start-mp-btn').disabled = false;
+    } else {
+      document.getElementById('joined-room-code').innerText = conn.peer;
+      showScreen('screen-mp-join');
+    }
+  });
+
+  conn.on('data', (msg) => {
+    if (msg.type === 'START') {
+      currentQuestions = msg.data;
+      startGameUI();
+    } else if (msg.type === 'ANSWER_SUBMITTED') {
+      oppAnswer = msg.answer;
+      checkRoundCompletion();
+    } else if (msg.type === 'ROUND_RESULTS') {
+      myScore = msg.p2Score; // If host sends results, I am p2
+      opponentScore = msg.p1Score;
+      showRoundResults(msg.correctAnswer, msg.p1Answer, msg.p2Answer);
+    } else if (msg.type === 'NEXT_QUESTION') {
+      closeLeaderboardAndNext();
+    }
+  });
+}
+
+function hostStartGame() {
+  const count = parseInt(document.getElementById('q-count').value);
+  currentQuestions = generateQuizBank(count);
+  if (currentQuestions.length === 0) return;
+  
+  conn.send({ type: 'START', data: currentQuestions });
+  startGameUI();
+}
+
+function generateRoomCode() {
+  const chars = 'BCDFGHJKLMNPQRSTVWXYZ'; // Consonants only to avoid bad words
+  let result = '';
+  for(let i = 0; i < 4; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+  return result;
+}
+
+// --- Game Logic ---
+function startGameUI() {
+  showScreen('screen-quiz');
+  if (isMultiplayer) document.getElementById('chip-opponent').classList.remove('hidden');
+  
+  currentIndex = 0;
+  myScore = 0; opponentScore = 0;
+  loadQuestion();
+}
+
+function loadQuestion() {
+  if (currentIndex >= currentQuestions.length) return endGame();
+  
+  myAnswer = null; oppAnswer = null;
+  document.getElementById('waiting-msg').style.display = 'none';
+  
+  const q = currentQuestions[currentIndex];
+  document.getElementById('question-text').innerHTML = `<strong style="color:var(--p${q.period})">[Unit ${q.period}]</strong><br/>${q.question}`;
+  
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  
+  q.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerText = opt;
+    btn.onclick = () => handleAnswer(opt, btn);
+    grid.appendChild(btn);
+  });
+  
+  updateStats();
+}
+
+function handleAnswer(selected, btn) {
+  const buttons = document.querySelectorAll('.option-btn');
+  buttons.forEach(b => b.disabled = true);
+  btn.classList.add('selected');
+  myAnswer = selected;
+  
+  if (!isMultiplayer) {
+    const q = currentQuestions[currentIndex];
+    if (myAnswer === q.answer) {
+      btn.classList.add('correct-ans');
+      myScore += 100;
+    } else {
+      btn.classList.add('wrong-ans');
+      buttons.forEach(b => { if (b.innerText === q.answer) b.classList.add('correct-ans'); });
+    }
+    updateStats();
+    setTimeout(() => { currentIndex++; loadQuestion(); }, 2000);
+    return;
+  }
+  
+  document.getElementById('waiting-msg').style.display = 'block';
+  conn.send({ type: 'ANSWER_SUBMITTED', answer: myAnswer });
+  checkRoundCompletion();
+}
+
+function checkRoundCompletion() {
+  if (!isHost) return; 
+  if (myAnswer !== null && oppAnswer !== null) {
+    const correctAnswer = currentQuestions[currentIndex].answer;
+    
+    if (myAnswer === correctAnswer) myScore += 100;
+    if (oppAnswer === correctAnswer) opponentScore += 100;
+    
+    conn.send({
+      type: 'ROUND_RESULTS', p1Score: myScore, p2Score: opponentScore,
+      correctAnswer: correctAnswer, p1Answer: myAnswer, p2Answer: oppAnswer
+    });
+    
+    showRoundResults(correctAnswer, myAnswer, oppAnswer);
+    
+    let countdown = 5;
+    const interval = setInterval(() => {
+      countdown--;
+      document.getElementById('lb-timer').innerText = countdown;
+      if (countdown <= 0) {
+        clearInterval(interval);
+        conn.send({ type: 'NEXT_QUESTION' });
+        closeLeaderboardAndNext();
+      }
+    }, 1000);
+  }
+}
+
+function showRoundResults(correctAnswer, p1Ans, p2Ans) {
+  const buttons = document.querySelectorAll('.option-btn');
+  buttons.forEach(b => {
+    if (b.innerText === correctAnswer) b.classList.add('correct-ans');
+    else if (b.classList.contains('selected') && b.innerText !== correctAnswer) b.classList.add('wrong-ans');
+  });
+
+  document.getElementById('lb-timer').innerText = "5";
+  document.getElementById('lb-you').innerText = `You: ${myScore}`;
+  document.getElementById('lb-opp').innerText = `Opponent: ${opponentScore}`;
+  document.getElementById('leaderboard-modal').style.display = 'flex';
+  updateStats();
+}
+
+function closeLeaderboardAndNext() {
+  document.getElementById('leaderboard-modal').style.display = 'none';
+  currentIndex++;
+  loadQuestion();
+}
+
+function updateStats() {
+  document.getElementById('chip-score').innerText = `Score: ${myScore}`;
+  if (isMultiplayer) document.getElementById('chip-opponent').innerText = `Opp: ${opponentScore}`;
+  document.getElementById('chip-remaining').innerText = `Q: ${Math.min(currentIndex + 1, currentQuestions.length)} / ${currentQuestions.length}`;
+  document.getElementById('progress-fill').style.width = `${(currentIndex / currentQuestions.length) * 100}%`;
+}
+
+function endGame() {
+  showScreen('screen-results');
+  const totalPossible = currentQuestions.length * 100;
+  document.getElementById('result-summary').innerText = `Final Score: ${myScore} / ${totalPossible}`;
+  
+  if (isMultiplayer) {
+    let outcomeText = "TIE GAME";
+    let color = "var(--ink)";
+    if (myScore > opponentScore) { outcomeText = "VICTORY"; color = "var(--correct)"; }
+    else if (myScore < opponentScore) { outcomeText = "DEFEAT"; color = "var(--wrong)"; }
+    
+    document.getElementById('final-outcome').innerText = outcomeText;
+    document.getElementById('final-outcome').style.color = color;
+    document.getElementById('result-multiplayer').innerText = `Opponent's Score: ${opponentScore}`;
+  } else {
+    document.getElementById('final-outcome').innerText = "Complete!";
+  }
+}
+</script>
+</body>
+</html>
