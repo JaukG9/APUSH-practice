@@ -17,7 +17,6 @@
     --navy:    #1c2e4a;
     --correct: #2d6a2d;
     --wrong:   #8b1a1a;
-    --gold:    #d4af37;
     
     --p1: #5a3e1b; --p2: #1c4a3e; --p3: #1c2e4a; --p4: #4a1c2e;
     --p5: #6b3010; --p6: #2f2544; --p7: #524b26; --p8: #1b3847; --p9: #471b1b;
@@ -45,15 +44,9 @@
   h1 { font-size: 2.5rem; text-align: center; margin-bottom: 1.5rem; border-bottom: 2px solid var(--sepia); padding-bottom: 1rem; width: 100%; max-width: 800px;}
 
   .container {
-    width: 100%;
-    max-width: 800px;
-    background: rgba(255, 255, 255, 0.4);
-    border: 1px solid var(--sepia);
-    padding: 2rem;
-    border-radius: 4px;
-    box-shadow: 2px 4px 12px rgba(0,0,0,0.05);
-    position: relative;
-    text-align: center;
+    width: 100%; max-width: 800px; background: rgba(255, 255, 255, 0.4);
+    border: 1px solid var(--sepia); padding: 2rem; border-radius: 4px;
+    box-shadow: 2px 4px 12px rgba(0,0,0,0.05); position: relative; text-align: center;
   }
 
   /* Tutorial Box */
@@ -69,7 +62,6 @@
   /* Reusable Settings Module */
   .menu-section { margin-bottom: 2rem; text-align: left; }
   .menu-section h4 { margin-bottom: 1rem; color: var(--rust); font-size: 1.5rem;}
-  
   .period-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 1rem; }
   
   button {
@@ -90,7 +82,6 @@
   .settings-row { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding: 15px; background: rgba(255,255,255,0.5); border: 1px solid var(--sepia); }
   .settings-row select { font-family: 'IBM Plex Mono', monospace; padding: 5px; font-size: 1.1rem; }
 
-  /* Input fields */
   input[type="text"] { font-family: 'IBM Plex Mono', monospace; padding: 10px; font-size: 1.5rem; text-align: center; width: 100%; max-width: 300px; border: 1px solid var(--sepia); background: white; margin-bottom: 10px; }
   input.code-input { text-transform: uppercase; letter-spacing: 2px; }
 
@@ -103,7 +94,7 @@
   /* Quiz Area & Timer */
   #screen-quiz { text-align: left; }
   .timer-container { width: 100%; background: var(--aged); height: 20px; border-radius: 10px; overflow: hidden; margin-bottom: 1rem; position: relative; border: 1px solid var(--sepia);}
-  .timer-fill { height: 100%; background: var(--forest); width: 100%; transition: width 0.1s linear, background-color 0.3s; }
+  .timer-fill { height: 100%; background: var(--forest); width: 100%; transition: width 0.05s linear, background-color 0.3s; }
   .timer-fill.warning { background: var(--rust); }
   .timer-text { position: absolute; top: 0; left: 0; width: 100%; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; font-weight: bold; line-height: 20px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);}
 
@@ -197,11 +188,11 @@
   <div class="tutorial-box">
     <h3>How to Play & Powerups</h3>
     <p><strong>The Timer:</strong> You have <b>15 seconds</b> per question. The faster you lock in a correct answer, the more points you get (60 to 100 pts). Wrong answers give 0.</p>
-    <p><strong>The Shop:</strong> Between rounds, you have 5 seconds to buy powerups using your score points!</p>
+    <p><strong>The Shop:</strong> Between rounds, you have 8 seconds to buy powerups using your score points!</p>
     <ul>
       <li><span class="powerup-name">Mr. Smith (Cost: 50):</span> Eliminates 2 wrong answers (50/50) on the next question.</li>
-      <li><span class="powerup-name">Mr. Wendt (Cost: 75):</span> Eliminates ALL wrong answers (Auto-corrects).</li>
-      <li><span class="powerup-name">Manifest Destiny (Cost: 80):</span> Earn double points if you get the next question right.</li>
+      <li><span class="powerup-name">Mr. Wendt (Cost: 150):</span> Eliminates ALL wrong answers (Auto-corrects).</li>
+      <li><span class="powerup-name">Manifest Destiny (Cost: 50):</span> Earn double points if you get the next question right.</li>
       <li><span class="powerup-name">Monroe Doctrine (Cost: 100):</span> Nullifies the very next attack used against you (stays active until hit).</li>
       <li><span class="powerup-name">Trustbusting (Cost: 150):</span> Destroys 200 points from the current 1st Place player (the richest).</li>
       <li><span class="powerup-name">Spoils System (Cost: 150):</span> Steals 100 points from a random opponent.</li>
@@ -254,7 +245,7 @@
   <div id="leaderboard-modal">
     <div class="lb-title">Round Complete!</div>
     <div class="lb-list" id="lb-list-container"></div>
-    <div style="color: var(--rust); font-size: 1.2rem; margin-bottom: 10px;">Next round in <span id="lb-timer">5</span>...</div>
+    <div style="color: var(--rust); font-size: 1.2rem; margin-bottom: 10px;">Next round in <span id="lb-timer">8</span>...</div>
     
     <div class="shop-container">
        <h4>Powerup Shop</h4>
@@ -364,19 +355,22 @@ let myName = "Player";
 let currentQuestions = [];
 let currentIndex = 0;
 let myScore = 0;
-let currentLeader = null; // Name of 1st place
+let currentLeader = null; 
 
 // Timer State
 let timeLeft = 15000;
 let timerInterval = null;
+let roundTimerInterval = null;
+let myLockedTime = 0;
+let myAnswer = null;
 
 // Powerup Buffs
 let buffs = { manifestDestiny: false, monroeDoctrine: false, mrSmith: false, mrWendt: false, embargoAct: false };
 
-// Multiplayer Sync State (Star Topology)
+// Multiplayer Sync State
 let peer = null, conn = null, isHost = false, isMultiplayer = false;
-let hostAnswer = null, hostAnswerTime = 0;
-let players = {}; // Host dictionary
+let hostAnswer = null;
+let players = {}; 
 
 // ------------------------------------------
 // UI & SETUP
@@ -456,21 +450,17 @@ function startHosting() {
   peer.on('connection', (connection) => {
     connection.on('data', (msg) => {
       if (msg.type === 'JOIN') {
-        players[connection.peer] = { conn: connection, name: msg.name, score: 0, answer: null, time: 0 };
+        players[connection.peer] = { conn: connection, name: msg.name, score: 0, answer: null };
         updateHostRoster();
       } 
       else if (msg.type === 'ANSWER_SUBMITTED') {
-        if (players[connection.peer]) {
-          players[connection.peer].answer = msg.answer;
-          players[connection.peer].time = msg.time;
-        }
+        if (players[connection.peer]) players[connection.peer].answer = msg.answer;
         checkAllAnswered();
       }
       else if (msg.type === 'ATTACK') {
         processAttackFromClient(connection.peer, msg.attackType);
       }
       else if (msg.type === 'ATTACK_SUCCESS') {
-        // Victim successfully took damage, award the attacker the stolen points
         if (msg.attacker === 'HOST') { myScore += msg.amount; updateStats(); showToast(`You successfully stole ${msg.amount} pts!`, 'good'); }
         else if (players[msg.attacker]) {
             players[msg.attacker].score += msg.amount;
@@ -529,8 +519,9 @@ function setupClientConnection() {
       document.getElementById('join-roster').innerHTML = html;
     }
     else if (msg.type === 'START') { currentQuestions = msg.data; startGameUI(); } 
-    else if (msg.type === 'ROUND_RESULTS') { myScore = msg.myScore; showRoundResults(msg.correctAnswer, msg.leaderboard); } 
+    else if (msg.type === 'ROUND_RESULTS') { showRoundResults(msg.correctAnswer); } 
     else if (msg.type === 'NEXT_QUESTION') { closeLeaderboardAndNext(); }
+    else if (msg.type === 'LB_SYNC') { currentLeader = msg.leader; renderLBHTML(msg.lb); }
     else if (msg.type === 'ATTACK_RECEIVED') { handleIncomingAttack(msg.attackType, msg.attacker); }
     else if (msg.type === 'TOAST') { showToast(msg.msg, msg.t); }
     else if (msg.type === 'SCORE_SYNC') { myScore = msg.score; updateStats(); }
@@ -558,25 +549,27 @@ function buyPowerup(type, cost) {
 
   // Attacks
   if (['TRUSTBUSTING', 'SPOILS', 'EMBARGO'].includes(type)) {
-    showToast(`Launched ${type} attack!`);
     if (!isMultiplayer) return showToast("Attacks do nothing in Single Player!", "bad");
+    showToast(`Launched ${type} attack!`);
     
-    if (isHost) broadcast({ type: 'ATTACK_RECEIVED', attackType: type, attacker: 'HOST' }); // Tell clients
-    else conn.send({ type: 'ATTACK', attackType: type }); // Tell Host to route it
+    if (isHost) {
+      broadcast({ type: 'ATTACK_RECEIVED', attackType: type, attacker: 'HOST' });
+      handleIncomingAttack(type, 'HOST');
+    }
+    else conn.send({ type: 'ATTACK', attackType: type });
   }
+  
+  if(!isHost) conn.send({ type: 'SCORE_SYNC', score: myScore }); // Ensure cost updates host
+  else setTimeout(renderDynamicLeaderboard, 100);
 }
 
-// Host routes client attacks to everyone else
 function processAttackFromClient(attackerId, type) {
-  // Broadcast to everyone else
   Object.keys(players).forEach(id => {
     if (id !== attackerId && players[id].conn) players[id].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
   });
-  // Host attacks self
   handleIncomingAttack(type, attackerId);
 }
 
-// Everyone executes this when hit
 function handleIncomingAttack(type, attackerId) {
   if (buffs.monroeDoctrine) {
     buffs.monroeDoctrine = false;
@@ -590,16 +583,15 @@ function handleIncomingAttack(type, attackerId) {
     if (myName === currentLeader) { damageTaken = 200; showToast("Trustbusted! You lost 200 points.", "bad"); }
   }
   else if (type === 'SPOILS') {
-    // Hits a random person. For simplicity in 1v1, it hits everyone except attacker.
-    damageTaken = 100; showToast("Spoils System! You were robbed of 100 points.", "bad");
+    // 50% chance to be the victim
+    if (Math.random() > 0.5) { damageTaken = 100; showToast("Spoils System! You were robbed of 100 points.", "bad"); }
   }
   else if (type === 'EMBARGO') {
-    buffs.embargoAct = true; showToast("Embargo Act! Next question gives 0 points.", "bad");
+    if (Math.random() > 0.5) { buffs.embargoAct = true; showToast("Embargo Act! Next question gives 0 points.", "bad"); }
   }
 
   if (damageTaken > 0) {
     myScore -= damageTaken; updateStats();
-    // Send success back to host to award attacker
     if (isHost) {
       if (players[attackerId]) {
         players[attackerId].score += damageTaken;
@@ -611,7 +603,6 @@ function handleIncomingAttack(type, attackerId) {
     }
   }
 }
-
 
 // ------------------------------------------
 // GAME LOGIC & TIMER
@@ -625,6 +616,7 @@ function startGameUI() {
 }
 
 function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
   timeLeft = 15000;
   document.getElementById('timer-text').innerText = "15.0s";
   document.getElementById('timer-bar').style.width = "100%";
@@ -640,7 +632,7 @@ function startTimer() {
     
     if (timeLeft <= 0) {
       clearInterval(timerInterval);
-      handleAnswer(null, null, true); // Auto-fail
+      handleAnswer('[TIMEOUT]', null); // Auto-fail
     }
   }, 50);
 }
@@ -648,6 +640,7 @@ function startTimer() {
 function loadQuestion() {
   if (currentIndex >= currentQuestions.length) return endGame();
   
+  myAnswer = null; myLockedTime = 0;
   if(isHost) { hostAnswer = null; Object.keys(players).forEach(id => players[id].answer = null); }
   document.getElementById('waiting-msg').style.display = 'none';
   
@@ -662,12 +655,11 @@ function loadQuestion() {
     const btn = document.createElement('button');
     btn.className = 'option-btn';
     btn.innerText = opt;
-    btn.onclick = () => handleAnswer(opt, btn, false);
+    btn.onclick = () => handleAnswer(opt, btn);
     grid.appendChild(btn);
     btns.push(btn);
   });
 
-  // Apply visual buffs immediately
   if (buffs.mrWendt) {
     buffs.mrWendt = false;
     btns.forEach(b => { if (b.innerText !== q.answer) b.classList.add('eliminated'); });
@@ -682,21 +674,21 @@ function loadQuestion() {
   startTimer();
 }
 
-function handleAnswer(selected, btn, isTimeout) {
-  clearInterval(timerInterval);
-  const timeLocked = timeLeft;
+function handleAnswer(selected, btn) {
+  if (timerInterval) clearInterval(timerInterval);
+  myLockedTime = timeLeft; // Snapshot exactly when they clicked
   
   const buttons = document.querySelectorAll('.option-btn');
   buttons.forEach(b => b.disabled = true);
   if (btn) btn.classList.add('selected');
-  
-  const q = currentQuestions[currentIndex];
+  myAnswer = selected;
   
   if (!isMultiplayer) {
-    if (selected === q.answer) {
+    const q = currentQuestions[currentIndex];
+    if (myAnswer === q.answer) {
       if (btn) btn.classList.add('correct-ans');
-      let earned = 60 + Math.floor((timeLocked/15000) * 40);
-      if (buffs.manifestDestiny) { earned *= 2; buffs.manifestDestiny = false; }
+      let earned = 60 + Math.floor((myLockedTime/15000) * 40);
+      if (buffs.manifestDestiny) { earned *= 2; buffs.manifestDestiny = false; showToast("Double Points!", "good");}
       if (buffs.embargoAct) { earned = 0; buffs.embargoAct = false; showToast("Embargo Act negated points!", "bad"); }
       myScore += earned;
     } else {
@@ -704,13 +696,33 @@ function handleAnswer(selected, btn, isTimeout) {
       buttons.forEach(b => { if (b.innerText === q.answer) b.classList.add('correct-ans'); });
     }
     updateStats();
-    setTimeout(() => { currentIndex++; loadQuestion(); }, 2000);
+    
+    document.getElementById('waiting-msg').innerText = "Next question in 2...";
+    document.getElementById('waiting-msg').style.display = 'block';
+    
+    setTimeout(() => { 
+      document.getElementById('waiting-msg').style.display = 'none';
+      document.getElementById('leaderboard-modal').style.display = 'flex';
+      
+      let countdown = 8;
+      document.getElementById('lb-timer').innerText = countdown;
+      roundTimerInterval = setInterval(() => {
+        countdown--;
+        document.getElementById('lb-timer').innerText = countdown;
+        if (countdown <= 0) {
+          clearInterval(roundTimerInterval);
+          closeLeaderboardAndNext();
+        }
+      }, 1000);
+    }, 1500);
     return;
   }
   
+  document.getElementById('waiting-msg').innerText = "Waiting for other players...";
   document.getElementById('waiting-msg').style.display = 'block';
-  if (isHost) { hostAnswer = selected; hostAnswerTime = timeLocked; checkAllAnswered(); } 
-  else { conn.send({ type: 'ANSWER_SUBMITTED', answer: selected, time: timeLocked }); }
+  
+  if (isHost) { hostAnswer = selected; checkAllAnswered(); } 
+  else { conn.send({ type: 'ANSWER_SUBMITTED', answer: selected }); }
 }
 
 function checkAllAnswered() {
@@ -721,35 +733,16 @@ function checkAllAnswered() {
   if (allDone) {
     const correctAnswer = currentQuestions[currentIndex].answer;
     
-    // Grade Host
-    if (hostAnswer === correctAnswer) {
-      let e = 60 + Math.floor((hostAnswerTime/15000) * 40);
-      if (buffs.manifestDestiny) { e *= 2; buffs.manifestDestiny = false; }
-      if (buffs.embargoAct) { e = 0; buffs.embargoAct = false; showToast("Embargo!", "bad"); }
-      myScore += e;
-    }
+    broadcast({ type: 'ROUND_RESULTS', correctAnswer: correctAnswer });
+    showRoundResults(correctAnswer); // Grade local host
     
-    // Grade Clients (Note: Host can't easily evaluate client buffs unless clients self-report score. 
-    // Wait, client should calculate their own score! Let's let clients calculate their own score and just tell host it was correct.
-    // To keep it secure/simple for this app: The client told us their time. We calculate base score here.
-    // But what about their local Manifest Destiny? 
-    // Fix: Have the Host trust the clients to calculate their own score locally when ROUND_RESULTS arrives.
-    // Yes, Host will just send ROUND_RESULTS with correct answer, and clients will add to their own local `myScore`.
-    // Then on the next screen, clients broadcast their true score.)
-    
-    // Let's do a synchronized reveal. 
-    let lb = []; // We will compile true lb later. For now just sync answers.
-    
-    broadcast({ type: 'ROUND_RESULTS', correctAnswer: correctAnswer, leaderboard: [] });
-    showRoundResults(correctAnswer, []);
-    
-    // 8-second synchronized timer to next round for SHOPPING
     let countdown = 8;
-    const interval = setInterval(() => {
+    if (roundTimerInterval) clearInterval(roundTimerInterval);
+    roundTimerInterval = setInterval(() => {
       countdown--;
       document.getElementById('lb-timer').innerText = countdown;
       if (countdown <= 0) {
-        clearInterval(interval);
+        clearInterval(roundTimerInterval);
         broadcast({ type: 'NEXT_QUESTION' });
         closeLeaderboardAndNext();
       }
@@ -757,29 +750,26 @@ function checkAllAnswered() {
   }
 }
 
-function showRoundResults(correctAnswer, dummy) {
-  // 1. Calculate local score based on what I clicked.
-  const myBtn = document.querySelector('.option-btn.selected');
-  let myAns = myBtn ? myBtn.innerText : null;
+function showRoundResults(correctAnswer) {
+  if (timerInterval) clearInterval(timerInterval); // Failsafe
+  document.getElementById('waiting-msg').style.display = 'none';
   
-  if (myAns === correctAnswer) {
-      let earned = 60 + Math.floor((timeLeft/15000) * 40);
+  if (myAnswer === correctAnswer) {
+      let earned = 60 + Math.floor((myLockedTime/15000) * 40);
       if (buffs.manifestDestiny) { earned *= 2; buffs.manifestDestiny = false; showToast("Double Points!", "good"); }
       if (buffs.embargoAct) { earned = 0; buffs.embargoAct = false; showToast("Embargo Act negated points!", "bad"); }
       myScore += earned;
   }
   updateStats();
   
-  // 2. Reveal colors
   const buttons = document.querySelectorAll('.option-btn');
   buttons.forEach(b => {
     if (b.innerText === correctAnswer) b.classList.add('correct-ans');
     else if (b.classList.contains('selected') && b.innerText !== correctAnswer) b.classList.add('wrong-ans');
   });
 
-  // 3. Inform host of my true final score so Host can build the Leaderboard
   if (!isHost) conn.send({ type: 'SCORE_SYNC', score: myScore });
-  else setTimeout(renderDynamicLeaderboard, 500); // Give clients 0.5s to report scores
+  else setTimeout(renderDynamicLeaderboard, 500);
   
   document.getElementById('lb-timer').innerText = "8";
   document.getElementById('leaderboard-modal').style.display = 'flex';
@@ -792,28 +782,9 @@ function renderDynamicLeaderboard() {
   Object.keys(players).forEach(id => { lb.push({ id: id, name: players[id].name, score: players[id].score }); });
   lb.sort((a,b) => b.score - a.score);
   
-  currentLeader = lb[0].name; // Set global leader for trustbusting
-  
-  // Render host side
+  currentLeader = lb[0].name;
   renderLBHTML(lb);
-  // Send to clients so they can render
   broadcast({ type: 'LB_SYNC', lb: lb, leader: currentLeader });
-}
-
-// Listen for LB_SYNC on client
-if(!isHost && peer) { // Added to client setup logic dynamically
-  // This is handled in setupClientConnection... let's patch it:
-}
-// Patching client connection logic:
-const originalSetup = setupClientConnection;
-setupClientConnection = function() {
-  originalSetup();
-  conn.on('data', (msg) => {
-    if (msg.type === 'LB_SYNC') {
-      currentLeader = msg.leader;
-      renderLBHTML(msg.lb);
-    }
-  });
 }
 
 function renderLBHTML(leaderboard) {
