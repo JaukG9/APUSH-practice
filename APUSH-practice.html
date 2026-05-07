@@ -624,15 +624,26 @@ function startTimer() {
 
   timerInterval = setInterval(() => {
     timeLeft -= 50;
-    let display = (timeLeft/1000).toFixed(1);
-    document.getElementById('timer-text').innerText = display + "s";
-    document.getElementById('timer-bar').style.width = (timeLeft/150) + "%";
     
+    // Update visuals
+    let display = (Math.max(0, timeLeft) / 1000).toFixed(1);
+    document.getElementById('timer-text').innerText = display + "s";
+    document.getElementById('timer-bar').style.width = (Math.max(0, timeLeft) / 150) + "%";
     if (timeLeft <= 5000) document.getElementById('timer-bar').classList.add('warning');
     
+    // Hard limit hitting 0
     if (timeLeft <= 0) {
       clearInterval(timerInterval);
-      handleAnswer('[TIMEOUT]', null); // Auto-fail
+      
+      // If local player never answered, force a timeout response
+      if (myAnswer === null) handleAnswer('[TIMEOUT]', null);
+      
+      // Host forcibly ends the round for everyone to prevent endless waiting
+      if (isHost || !isMultiplayer) {
+          const correctAnswer = currentQuestions[currentIndex].answer;
+          if (isMultiplayer) broadcast({ type: 'ROUND_RESULTS', correctAnswer: correctAnswer });
+          showRoundResults(correctAnswer);
+      }
     }
   }, 50);
 }
@@ -675,85 +686,55 @@ function loadQuestion() {
 }
 
 function handleAnswer(selected, btn) {
-  if (timerInterval) clearInterval(timerInterval);
-  myLockedTime = timeLeft; // Snapshot exactly when they clicked
+  if (myAnswer !== null) return; // Prevent double clicking
+  
+  // SNAPSHOT the exact time, but DO NOT stop the actual timerInterval yet!
+  myLockedTime = Math.max(0, timeLeft); 
+  myAnswer = selected;
   
   const buttons = document.querySelectorAll('.option-btn');
   buttons.forEach(b => b.disabled = true);
   if (btn) btn.classList.add('selected');
-  myAnswer = selected;
   
   if (!isMultiplayer) {
-    const q = currentQuestions[currentIndex];
-    if (myAnswer === q.answer) {
-      if (btn) btn.classList.add('correct-ans');
-      let earned = 60 + Math.floor((myLockedTime/15000) * 40);
-      if (buffs.manifestDestiny) { earned *= 2; buffs.manifestDestiny = false; showToast("Double Points!", "good");}
-      if (buffs.embargoAct) { earned = 0; buffs.embargoAct = false; showToast("Embargo Act negated points!", "bad"); }
-      myScore += earned;
-    } else {
-      if (btn) btn.classList.add('wrong-ans');
-      buttons.forEach(b => { if (b.innerText === q.answer) b.classList.add('correct-ans'); });
-    }
-    updateStats();
-    
-    document.getElementById('waiting-msg').innerText = "Next question in 2...";
-    document.getElementById('waiting-msg').style.display = 'block';
-    
-    setTimeout(() => { 
-      document.getElementById('waiting-msg').style.display = 'none';
-      document.getElementById('leaderboard-modal').style.display = 'flex';
-      
-      let countdown = 8;
-      document.getElementById('lb-timer').innerText = countdown;
-      roundTimerInterval = setInterval(() => {
-        countdown--;
-        document.getElementById('lb-timer').innerText = countdown;
-        if (countdown <= 0) {
-          clearInterval(roundTimerInterval);
-          closeLeaderboardAndNext();
-        }
-      }, 1000);
-    }, 1500);
+    // Single player: Everyone (1 person) has answered, skip to results immediately.
+    clearInterval(timerInterval);
+    showRoundResults(currentQuestions[currentIndex].answer);
     return;
   }
   
+  // Multiplayer logic:
   document.getElementById('waiting-msg').innerText = "Waiting for other players...";
   document.getElementById('waiting-msg').style.display = 'block';
   
-  if (isHost) { hostAnswer = selected; checkAllAnswered(); } 
-  else { conn.send({ type: 'ANSWER_SUBMITTED', answer: selected }); }
+  if (isHost) { 
+      hostAnswer = selected; 
+      checkAllAnswered(); 
+  } else { 
+      conn.send({ type: 'ANSWER_SUBMITTED', answer: selected }); 
+  }
 }
 
 function checkAllAnswered() {
   if (!isHost) return; 
+  
   let allDone = (hostAnswer !== null);
   Object.values(players).forEach(p => { if (p.answer === null) allDone = false; });
 
+  // If every player has locked in, end the round early!
   if (allDone) {
+    clearInterval(timerInterval); // Stop the visual timer early for the host
     const correctAnswer = currentQuestions[currentIndex].answer;
-    
     broadcast({ type: 'ROUND_RESULTS', correctAnswer: correctAnswer });
-    showRoundResults(correctAnswer); // Grade local host
-    
-    let countdown = 8;
-    if (roundTimerInterval) clearInterval(roundTimerInterval);
-    roundTimerInterval = setInterval(() => {
-      countdown--;
-      document.getElementById('lb-timer').innerText = countdown;
-      if (countdown <= 0) {
-        clearInterval(roundTimerInterval);
-        broadcast({ type: 'NEXT_QUESTION' });
-        closeLeaderboardAndNext();
-      }
-    }, 1000);
+    showRoundResults(correctAnswer); 
   }
 }
 
 function showRoundResults(correctAnswer) {
-  if (timerInterval) clearInterval(timerInterval); // Failsafe
+  if (timerInterval) clearInterval(timerInterval); // Final failsafe to stop timer 
   document.getElementById('waiting-msg').style.display = 'none';
   
+  // Award points based on the snapshot
   if (myAnswer === correctAnswer) {
       let earned = 60 + Math.floor((myLockedTime/15000) * 40);
       if (buffs.manifestDestiny) { earned *= 2; buffs.manifestDestiny = false; showToast("Double Points!", "good"); }
@@ -762,17 +743,42 @@ function showRoundResults(correctAnswer) {
   }
   updateStats();
   
+  // Highlight UI
   const buttons = document.querySelectorAll('.option-btn');
   buttons.forEach(b => {
     if (b.innerText === correctAnswer) b.classList.add('correct-ans');
     else if (b.classList.contains('selected') && b.innerText !== correctAnswer) b.classList.add('wrong-ans');
   });
 
-  if (!isHost) conn.send({ type: 'SCORE_SYNC', score: myScore });
-  else setTimeout(renderDynamicLeaderboard, 500);
+  if (!isHost && isMultiplayer) conn.send({ type: 'SCORE_SYNC', score: myScore });
+  else if (isHost) setTimeout(renderDynamicLeaderboard, 500);
   
   document.getElementById('lb-timer').innerText = "8";
   document.getElementById('leaderboard-modal').style.display = 'flex';
+  
+  // Synchronized Next-Round Countdown
+  if (!isMultiplayer || isHost) {
+      let countdown = 8;
+      if (roundTimerInterval) clearInterval(roundTimerInterval);
+      roundTimerInterval = setInterval(() => {
+        countdown--;
+        document.getElementById('lb-timer').innerText = countdown;
+        if (countdown <= 0) {
+          clearInterval(roundTimerInterval);
+          if (isMultiplayer) broadcast({ type: 'NEXT_QUESTION' });
+          closeLeaderboardAndNext();
+        }
+      }, 1000);
+  } else {
+      // Clients still see a visual countdown, but rely on the Host's NEXT_QUESTION broadcast to proceed safely
+      let countdown = 8;
+      if (roundTimerInterval) clearInterval(roundTimerInterval);
+      roundTimerInterval = setInterval(() => {
+        countdown--;
+        document.getElementById('lb-timer').innerText = countdown;
+        if (countdown <= 0) clearInterval(roundTimerInterval);
+      }, 1000);
+  }
 }
 
 function renderDynamicLeaderboard() {
@@ -809,7 +815,6 @@ function updateStats() {
   document.getElementById('chip-score').innerText = `Score: ${myScore}`;
   if (isMultiplayer) document.getElementById('chip-players-connected').innerText = `Players: ${isHost ? Object.keys(players).length + 1 : 'Multi'}`;
   document.getElementById('chip-remaining').innerText = `Q: ${Math.min(currentIndex + 1, currentQuestions.length)} / ${currentQuestions.length}`;
-  document.getElementById('progress-fill').style.width = `${(currentIndex / currentQuestions.length) * 100}%`;
 }
 
 function endGame() {
