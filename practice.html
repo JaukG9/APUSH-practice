@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>APUSH Practice</title>
+<title>AP Practice</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
 <script src="questions.js"></script>
@@ -54,7 +54,7 @@
 
   .settings-row { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding: 15px; background: rgba(255,255,255,0.5); border: 1px solid var(--sepia); }
   
-  input[type="text"], input[type="number"] { font-family: 'IBM Plex Mono', monospace; padding: 10px; font-size: 1.2rem; text-align: center; border: 1px solid var(--sepia); background: white; margin-bottom: 10px; }
+  input[type="text"], input[type="number"], select { font-family: 'IBM Plex Mono', monospace; padding: 10px; font-size: 1.2rem; text-align: center; border: 1px solid var(--sepia); background: white; margin-bottom: 10px; }
   input.code-input { text-transform: uppercase; letter-spacing: 2px; width: 100%; max-width: 300px; font-size: 1.5rem;}
   
   .room-code-display { font-size: 3.5rem; font-weight: bold; color: var(--rust); letter-spacing: 10px; margin: 1rem 0; font-family: 'IBM Plex Mono', monospace;}
@@ -112,7 +112,7 @@
 
 <div id="toast-container"></div>
 
-<h1>APUSH Practice</h1>
+<h1 id="main-title">APUSH Practice</h1>
 
 <div id="game-settings-module" class="hidden">
   <div class="menu-section">
@@ -148,8 +148,18 @@
 </div>
 
 <div class="container app-screen active" id="screen-main-menu">
+  
+  <div style="margin-bottom: 20px; text-align: center;">
+    <h2 style="margin-bottom: 10px;">Select Subject</h2>
+    <select id="subject-dropdown" onchange="updateThemeUI()" style="width: 100%; max-width: 300px; font-size: 1.5rem; border-color: var(--navy); color: var(--navy); font-weight: bold;">
+      <option value="APUSH">APUSH</option>
+      <option value="ENGLISH">AP English</option>
+    </select>
+  </div>
+
   <h2>Enter Your Name</h2>
   <input type="text" id="player-name-input" placeholder="Your Name" maxlength="15" style="width: 100%; max-width:300px;">
+  
   <h2 style="margin-top: 1.5rem;">Select Game Mode</h2>
   <button class="big-btn" onclick="setAndGo('SP')">Single Player</button>
   <button class="big-btn secondary" onclick="setAndGo('MP')">Multiplayer</button>
@@ -159,14 +169,14 @@
     <p><strong>The Timer:</strong> If enabled, faster correct answers grant more points. Wrong answers yield 0. If disabled, correct answers give a flat 100 points.</p>
     <p><strong>The Shop (Multiplayer Only):</strong> Between rounds, you have 5 seconds to buy powerups using your score points!</p>
     <ul>
-      <li><span class="powerup-name">Abraham Lincoln (Cost: 50):</span> Eliminates 2 wrong answers (50/50).</li>
-      <li><span class="powerup-name">George Washington (Cost: 150):</span> Eliminates ALL wrong answers (Auto-corrects).</li>
-      <li><span class="powerup-name">Manifest Destiny (Cost: 50):</span> Earn double points if correct.</li>
-      <li><span class="powerup-name">Monroe Doctrine (Cost: 100):</span> Nullifies the very next attack against you (Stacks!).</li>
-      <li><span class="powerup-name">Trustbusting (Cost: 150):</span> Destroys up to 200 points from the 1st Place player.</li>
-      <li><span class="powerup-name">Spoils System (Cost: 150):</span> Steals up to 100 points from ONE random opponent.</li>
-      <li><span class="powerup-name">Embargo Act (Cost: 200):</span> Forces ONE opponent to earn 0 points next question.</li>
-      <li><span class="powerup-name">Gilded Age (Cost: 75):</span> 50% chance to gain 200 pts, 50% chance to lose 100 pts.</li>
+      <li><span class="powerup-name" id="tut-elim2">Abraham Lincoln</span> (Cost: 50): Eliminates 2 wrong answers (50/50).</li>
+      <li><span class="powerup-name" id="tut-auto">George Washington</span> (Cost: 150): Eliminates ALL wrong answers (Auto-corrects).</li>
+      <li><span class="powerup-name" id="tut-double">Manifest Destiny</span> (Cost: 50): Earn double points if correct.</li>
+      <li><span class="powerup-name" id="tut-block">Monroe Doctrine</span> (Cost: 100): Nullifies the very next attack against you (Stacks!).</li>
+      <li><span class="powerup-name" id="tut-nuke">Trustbusting</span> (Cost: 150): Destroys up to 200 points from the 1st Place player.</li>
+      <li><span class="powerup-name" id="tut-steal">Spoils System</span> (Cost: 150): Steals up to 100 points from ONE random opponent.</li>
+      <li><span class="powerup-name" id="tut-zero">Embargo Act</span> (Cost: 200): Forces an opponent to earn 0 points next question.</li>
+      <li><span class="powerup-name" id="tut-gamble">Gilded Age</span> (Cost: 75): 50% chance to gain 200 pts, 50% chance to lose 100 pts.</li>
       <li style="color:var(--rust); margin-top:5px;"><strong>Limit:</strong> You can only use <strong>3 powerups</strong> per round.</li>
     </ul>
   </div>
@@ -217,18 +227,10 @@
     <div class="lb-list" id="lb-list-container"></div>
     <div style="color: var(--rust); font-size: 1.2rem; margin-bottom: 10px;">Next round in <span id="lb-timer">5</span>...</div>
     
-    <div class="shop-container">
+    <div class="shop-container" id="shop-container">
        <h4>Powerup Shop</h4>
-       <div class="shop-grid">
-           <button class="shop-item" onclick="buyPowerup('LINCOLN', 50)"><strong>Abraham Lincoln</strong><br>Elim. 2 Wrong<br><span>Cost: 50</span></button>
-           <button class="shop-item" onclick="buyPowerup('WASHINGTON', 150)"><strong>George Washington</strong><br>Auto-Correct<br><span>Cost: 150</span></button>
-           <button class="shop-item" onclick="buyPowerup('MANIFEST', 50)"><strong>Manifest Destiny</strong><br>Double Points<br><span>Cost: 50</span></button>
-           <button class="shop-item" onclick="buyPowerup('MONROE', 100)"><strong>Monroe Doctrine</strong><br>Block 1 Attack<br><span>Cost: 100</span></button>
-           <button class="shop-item" onclick="buyPowerup('GILDED', 75)"><strong>Gilded Age</strong><br>Win 200/Lose 100<br><span>Cost: 75</span></button>
-           <button class="shop-item" onclick="buyPowerup('TRUSTBUSTING', 150)"><strong>Trustbusting</strong><br>Nuke 1st Place<br><span>Cost: 150</span></button>
-           <button class="shop-item" onclick="buyPowerup('SPOILS', 150)"><strong>Spoils System</strong><br>Steal 100 Pts<br><span>Cost: 150</span></button>
-           <button class="shop-item" onclick="buyPowerup('EMBARGO', 200)"><strong>Embargo Act</strong><br>Opponent gets 0<br><span>Cost: 200</span></button>
-       </div>
+       <div class="shop-grid" id="dynamic-shop-grid">
+           </div>
     </div>
   </div>
 
@@ -253,7 +255,40 @@
 </div>
 
 <script>
+// THEMES & POWERUPS CONFIG
+const THEMES = {
+  APUSH: {
+    title: "APUSH Practice",
+    bank: "apushBank",
+    powerups: {
+      ELIM2: { name: "Abraham Lincoln", desc: "Elim. 2 Wrong" },
+      AUTOCORRECT: { name: "George Washington", desc: "Auto-Correct" },
+      DOUBLE: { name: "Manifest Destiny", desc: "Double Points" },
+      BLOCK: { name: "Monroe Doctrine", desc: "Block 1 Attack" },
+      GAMBLE: { name: "Gilded Age", desc: "Win 200/Lose 100" },
+      NUKE: { name: "Trustbusting", desc: "Nuke 1st Place" },
+      STEAL: { name: "Spoils System", desc: "Steal 100 Pts" },
+      ZERO: { name: "Embargo Act", desc: "Opponent gets 0" }
+    }
+  },
+  ENGLISH: {
+    title: "AP English Practice",
+    bank: "englishBank",
+    powerups: {
+      ELIM2: { name: "Edgar Allan Poe", desc: "Elim. 2 Wrong" },
+      AUTOCORRECT: { name: "William Shakespeare", desc: "Auto-Correct" },
+      DOUBLE: { name: "Poetic License", desc: "Double Points" },
+      BLOCK: { name: "Writer's Block", desc: "Block 1 Attack" },
+      GAMBLE: { name: "Plot Twist", desc: "Win 200/Lose 100" },
+      NUKE: { name: "Deus Ex Machina", desc: "Nuke 1st Place" },
+      STEAL: { name: "The Artful Dodger", desc: "Steal 100 Pts" },
+      ZERO: { name: "Censorship", desc: "Opponent gets 0" }
+    }
+  }
+};
+
 // STATE VARIABLES
+let selectedSubject = 'APUSH';
 let myName = "Player";
 let currentQuestions = [];
 let currentIndex = 0;
@@ -269,13 +304,12 @@ let roundTimerInterval = null;
 let myLockedTime = 0;
 let myAnswer = null;
 
-let buffs = { manifestDestiny: false, monroeDoctrine: 0, abrahamLincoln: false, georgeWashington: false, embargoAct: false };
+let buffs = { doublePoints: false, blockAttacks: 0, elim2: false, autocorrect: false, zeroPoints: false };
 let peer = null, conn = null, isHost = false, isMultiplayer = false;
 let hostAnswer = null;
 let players = {}; 
 let powerupsUsedThisRound = 0;
 
-// WebRTC Config for much better connection reliability across networks
 const peerConfig = {
     config: {
         'iceServers': [
@@ -284,6 +318,39 @@ const peerConfig = {
         ]
     }
 };
+
+// UI UPDATES
+function updateThemeUI() {
+  selectedSubject = document.getElementById('subject-dropdown').value;
+  let t = THEMES[selectedSubject];
+  
+  document.title = t.title;
+  document.getElementById('main-title').innerText = t.title;
+  
+  document.getElementById('tut-elim2').innerText = t.powerups.ELIM2.name;
+  document.getElementById('tut-auto').innerText = t.powerups.AUTOCORRECT.name;
+  document.getElementById('tut-double').innerText = t.powerups.DOUBLE.name;
+  document.getElementById('tut-block').innerText = t.powerups.BLOCK.name;
+  document.getElementById('tut-gamble').innerText = t.powerups.GAMBLE.name;
+  document.getElementById('tut-nuke').innerText = t.powerups.NUKE.name;
+  document.getElementById('tut-steal').innerText = t.powerups.STEAL.name;
+  document.getElementById('tut-zero').innerText = t.powerups.ZERO.name;
+}
+
+function renderShop() {
+  let t = THEMES[selectedSubject];
+  let grid = document.getElementById('dynamic-shop-grid');
+  grid.innerHTML = `
+    <button class="shop-item" onclick="buyPowerup('ELIM2', 50)"><strong>${t.powerups.ELIM2.name}</strong><br>${t.powerups.ELIM2.desc}<br><span>Cost: 50</span></button>
+    <button class="shop-item" onclick="buyPowerup('AUTOCORRECT', 150)"><strong>${t.powerups.AUTOCORRECT.name}</strong><br>${t.powerups.AUTOCORRECT.desc}<br><span>Cost: 150</span></button>
+    <button class="shop-item" onclick="buyPowerup('DOUBLE', 50)"><strong>${t.powerups.DOUBLE.name}</strong><br>${t.powerups.DOUBLE.desc}<br><span>Cost: 50</span></button>
+    <button class="shop-item" onclick="buyPowerup('BLOCK', 100)"><strong>${t.powerups.BLOCK.name}</strong><br>${t.powerups.BLOCK.desc}<br><span>Cost: 100</span></button>
+    <button class="shop-item" onclick="buyPowerup('GAMBLE', 75)"><strong>${t.powerups.GAMBLE.name}</strong><br>${t.powerups.GAMBLE.desc}<br><span>Cost: 75</span></button>
+    <button class="shop-item" onclick="buyPowerup('NUKE', 150)"><strong>${t.powerups.NUKE.name}</strong><br>${t.powerups.NUKE.desc}<br><span>Cost: 150</span></button>
+    <button class="shop-item" onclick="buyPowerup('STEAL', 150)"><strong>${t.powerups.STEAL.name}</strong><br>${t.powerups.STEAL.desc}<br><span>Cost: 150</span></button>
+    <button class="shop-item" onclick="buyPowerup('ZERO', 200)"><strong>${t.powerups.ZERO.name}</strong><br>${t.powerups.ZERO.desc}<br><span>Cost: 200</span></button>
+  `;
+}
 
 function showScreen(screenId) {
   document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active'));
@@ -314,21 +381,18 @@ function setAndGo(mode) {
   else { showScreen('screen-mp-lobby'); }
 }
 
-document.querySelectorAll('#period-toggles button').forEach(b => {
-  b.addEventListener('click', (e) => { e.target.classList.toggle('active'); });
-});
-function selectAllPeriods() { document.querySelectorAll('#period-toggles button').forEach(b => b.classList.add('active')); }
-
 function generateQuizBank(limit) {
   const activePeriods = new Set();
   document.querySelectorAll('#period-toggles button.active').forEach(b => activePeriods.add(parseInt(b.dataset.period)));
   
-  if (typeof rawBank === 'undefined') {
-      alert("Error: questions.js file not found! Make sure you saved it in the same folder.");
+  let targetBank = selectedSubject === 'APUSH' ? apushBank : englishBank;
+
+  if (typeof targetBank === 'undefined') {
+      alert("Error: questions.js file not found or formatted incorrectly!");
       return [];
   }
 
-  const filtered = rawBank.filter(item => activePeriods.has(item[0]));
+  const filtered = targetBank.filter(item => activePeriods.has(item[0]));
   if (filtered.length === 0) { alert("Select at least one period!"); return []; }
   
   filtered.sort(() => Math.random() - 0.5);
@@ -364,10 +428,7 @@ function startHosting() {
   isHost = true;
   
   peer.on('open', (id) => { document.getElementById('room-code').innerText = id; updateHostRoster(); });
-  peer.on('error', (err) => {
-      console.error(err);
-      showToast("Network Error: " + err.type, "bad");
-  });
+  peer.on('error', (err) => { showToast("Network Error: " + err.type, "bad"); });
 
   peer.on('connection', (connection) => {
     connection.on('data', (msg) => {
@@ -379,9 +440,7 @@ function startHosting() {
         if (players[connection.peer]) players[connection.peer].answer = msg.answer;
         checkAllAnswered();
       }
-      else if (msg.type === 'ATTACK') {
-        processAttackFromClient(connection.peer, msg.attackType);
-      }
+      else if (msg.type === 'ATTACK') { processAttackFromClient(connection.peer, msg.attackType); }
       else if (msg.type === 'ATTACK_SUCCESS') {
         if (msg.attacker === 'HOST') { 
             myScore += msg.amount; updateStats(); 
@@ -396,10 +455,7 @@ function startHosting() {
         }
       }
       else if (msg.type === 'SCORE_SYNC') {
-        if (players[connection.peer]) {
-            players[connection.peer].score = msg.score;
-            renderDynamicLeaderboard(); 
-        }
+        if (players[connection.peer]) { players[connection.peer].score = msg.score; renderDynamicLeaderboard(); }
       }
     });
     connection.on('close', () => { delete players[connection.peer]; updateHostRoster(); checkAllAnswered(); });
@@ -425,7 +481,7 @@ function hostStartGame() {
   currentQuestions = generateQuizBank(count);
   if (currentQuestions.length === 0) return;
   isMultiplayer = true;
-  broadcast({ type: 'START', data: currentQuestions, useTimer: useTimer, baseTimerDuration: baseTimerDuration });
+  broadcast({ type: 'START', data: currentQuestions, useTimer: useTimer, baseTimerDuration: baseTimerDuration, subject: selectedSubject });
   startGameUI();
 }
 
@@ -438,15 +494,9 @@ function joinGame() {
   
   peer.on('open', () => { conn = peer.connect(code); isHost = false; setupClientConnection(); });
   peer.on('error', (err) => {
-      console.error(err);
-      if (err.type === 'peer-unavailable') {
-          showToast("Room not found. Check the code.", "bad");
-          document.getElementById('join-btn').disabled = false;
-          document.getElementById('join-status-msg').innerText = "Room not found.";
-      } else {
-          showToast("Network Error: " + err.type, "bad");
-          document.getElementById('join-status-msg').innerText = "Connection failed.";
-      }
+      if (err.type === 'peer-unavailable') { showToast("Room not found.", "bad"); document.getElementById('join-status-msg').innerText = "Room not found."; } 
+      else { showToast("Network Error.", "bad"); document.getElementById('join-status-msg').innerText = "Connection failed."; }
+      document.getElementById('join-btn').disabled = false;
   });
 }
 
@@ -468,6 +518,7 @@ function setupClientConnection() {
       currentQuestions = msg.data; 
       useTimer = msg.useTimer;
       baseTimerDuration = msg.baseTimerDuration;
+      selectedSubject = msg.subject; // Sync subject from host
       startGameUI(); 
     } 
     else if (msg.type === 'ROUND_RESULTS') { showRoundResults(msg.correctAnswer); } 
@@ -486,9 +537,7 @@ function quitToMenu() {
     if (roundTimerInterval) clearInterval(roundTimerInterval);
     if (conn) { conn.close(); conn = null; }
     if (peer) { peer.destroy(); peer = null; }
-    isMultiplayer = false;
-    isHost = false;
-    players = {};
+    isMultiplayer = false; isHost = false; players = {};
     document.getElementById('leaderboard-modal').style.display = 'none';
     document.getElementById('join-btn').disabled = false;
     document.getElementById('join-status-msg').innerText = "";
@@ -504,30 +553,24 @@ function buyPowerup(type, cost) {
   powerupsUsedThisRound++;
   updateStats();
   
-  if (type === 'LINCOLN') { buffs.abrahamLincoln = true; showToast("Purchased Abraham Lincoln (50/50)!"); }
-  if (type === 'WASHINGTON') { buffs.georgeWashington = true; showToast("Purchased George Washington (Auto-correct)!"); }
-  if (type === 'MANIFEST') { buffs.manifestDestiny = true; showToast("Purchased Manifest Destiny!"); }
-  if (type === 'MONROE') { buffs.monroeDoctrine++; showToast(`Purchased Monroe Doctrine (Stacks: ${buffs.monroeDoctrine})!`); }
+  let tName = THEMES[selectedSubject].powerups[type].name;
   
-  if (type === 'GILDED') {
-    if (Math.random() > 0.5) { 
-        myScore += 200; 
-        showToast("Gilded Age: Won 200 points!", "good"); 
-    } else { 
-        let lost = Math.min(myScore, 100);
-        myScore -= lost; 
-        showToast(`Panic of 1893: Lost ${lost} points!`, "bad"); 
-    }
+  if (type === 'ELIM2') { buffs.elim2 = true; showToast(`Purchased ${tName} (50/50)!`); }
+  if (type === 'AUTOCORRECT') { buffs.autocorrect = true; showToast(`Purchased ${tName} (Auto-correct)!`); }
+  if (type === 'DOUBLE') { buffs.doublePoints = true; showToast(`Purchased ${tName}!`); }
+  if (type === 'BLOCK') { buffs.blockAttacks++; showToast(`Purchased ${tName} (Stacks: ${buffs.blockAttacks})!`); }
+  
+  if (type === 'GAMBLE') {
+    if (Math.random() > 0.5) { myScore += 200; showToast(`${tName}: Won 200 points!`, "good"); } 
+    else { let lost = Math.min(myScore, 100); myScore -= lost; showToast(`${tName}: Lost ${lost} points!`, "bad"); }
     updateStats();
   }
 
-  if (['TRUSTBUSTING', 'SPOILS', 'EMBARGO'].includes(type)) {
+  if (['NUKE', 'STEAL', 'ZERO'].includes(type)) {
     if (!isMultiplayer) return showToast("Attacks do nothing in Single Player!", "bad");
-    showToast(`Launched ${type} attack!`);
+    showToast(`Launched ${tName} attack!`);
     
-    if (isHost) {
-      processAttackFromHost(type);
-    }
+    if (isHost) processAttackFromHost(type);
     else conn.send({ type: 'ATTACK', attackType: type });
   }
   
@@ -537,14 +580,12 @@ function buyPowerup(type, cost) {
 
 function processAttackFromHost(type) {
   let attackerId = 'HOST';
-  if (type === 'SPOILS' || type === 'EMBARGO') {
+  if (type === 'STEAL' || type === 'ZERO') {
       let targetIds = Object.keys(players);
       if (targetIds.length > 0) {
           let target = targetIds[Math.floor(Math.random() * targetIds.length)];
           players[target].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
-      } else {
-          showToast("No opponents to target!", "bad");
-      }
+      } else { showToast("No opponents to target!", "bad"); }
   } else {
       Object.keys(players).forEach(id => {
           if (players[id].conn) players[id].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
@@ -553,41 +594,34 @@ function processAttackFromHost(type) {
 }
 
 function processAttackFromClient(attackerId, type) {
-  if (type === 'SPOILS' || type === 'EMBARGO') {
+  if (type === 'STEAL' || type === 'ZERO') {
       let targetIds = Object.keys(players).filter(id => id !== attackerId);
       targetIds.push('HOST');
       if (targetIds.length > 0) {
           let target = targetIds[Math.floor(Math.random() * targetIds.length)];
-          if (target === 'HOST') {
-              handleIncomingAttack(type, attackerId);
-          } else {
-              players[target].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
-          }
+          if (target === 'HOST') handleIncomingAttack(type, attackerId);
+          else players[target].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
       }
   } else {
       Object.keys(players).forEach(id => {
-          if (id !== attackerId && players[id].conn) {
-              players[id].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
-          }
+          if (id !== attackerId && players[id].conn) players[id].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
       });
       handleIncomingAttack(type, attackerId);
   }
 }
 
 function handleIncomingAttack(type, attackerId) {
-  if (buffs.monroeDoctrine > 0) {
-    buffs.monroeDoctrine--; 
-    showToast(`Monroe Doctrine blocked an attack! (${buffs.monroeDoctrine} left)`, "good"); 
-    return;
+  if (buffs.blockAttacks > 0) {
+    buffs.blockAttacks--; showToast(`Block Powerup prevented an attack! (${buffs.blockAttacks} left)`, "good"); return;
   }
 
   let damageTaken = 0;
-  if (type === 'TRUSTBUSTING') {
-    if (myName === currentLeader) { damageTaken = Math.min(myScore, 200); showToast(`Trustbusted! You lost ${damageTaken} points.`, "bad"); }
-  } else if (type === 'SPOILS') {
-    damageTaken = Math.min(myScore, 100); showToast(`Spoils System! You were robbed of ${damageTaken} points.`, "bad");
-  } else if (type === 'EMBARGO') {
-    buffs.embargoAct = true; showToast("Embargo Act! Next question gives 0 points.", "bad");
+  if (type === 'NUKE') {
+    if (myName === currentLeader) { damageTaken = Math.min(myScore, 200); showToast(`Nuked! You lost ${damageTaken} points.`, "bad"); }
+  } else if (type === 'STEAL') {
+    damageTaken = Math.min(myScore, 100); showToast(`Stolen from! You were robbed of ${damageTaken} points.`, "bad");
+  } else if (type === 'ZERO') {
+    buffs.zeroPoints = true; showToast("Silenced! Next question gives 0 points.", "bad");
   }
 
   if (damageTaken > 0) {
@@ -608,8 +642,10 @@ function handleIncomingAttack(type, attackerId) {
 
 function startGameUI() {
   showScreen('screen-quiz');
+  
   if (isMultiplayer) {
       document.getElementById('chip-players-connected').classList.remove('hidden');
+      renderShop();
       document.querySelector('.shop-container').style.display = 'block';
   } else {
       document.getElementById('chip-players-connected').classList.add('hidden');
@@ -620,8 +656,7 @@ function startGameUI() {
   else document.getElementById('timer-wrapper').style.display = 'block';
 
   currentIndex = 0; myScore = 0; myCorrectAnswers = 0; hostAnswer = null;
-  
-  buffs = { manifestDestiny: false, monroeDoctrine: 0, abrahamLincoln: false, georgeWashington: false, embargoAct: false };
+  buffs = { doublePoints: false, blockAttacks: 0, elim2: false, autocorrect: false, zeroPoints: false };
   loadQuestion();
 }
 
@@ -678,11 +713,11 @@ function loadQuestion() {
     btns.push(btn);
   });
 
-  if (buffs.georgeWashington) {
-    buffs.georgeWashington = false;
+  if (buffs.autocorrect) {
+    buffs.autocorrect = false;
     btns.forEach(b => { if (b.innerText !== q.answer) b.classList.add('eliminated'); });
-  } else if (buffs.abrahamLincoln) {
-    buffs.abrahamLincoln = false;
+  } else if (buffs.elim2) {
+    buffs.elim2 = false;
     let wrongs = btns.filter(b => b.innerText !== q.answer);
     wrongs[0].classList.add('eliminated');
     wrongs[1].classList.add('eliminated');
@@ -728,19 +763,18 @@ function checkAllAnswered() {
 }
 
 function showRoundResults(correctAnswer) {
-  powerupsUsedThisRound = 0; // Reset shop limit
+  powerupsUsedThisRound = 0; 
 
   if (timerInterval) clearInterval(timerInterval); 
   document.getElementById('waiting-msg').style.display = 'none';
   
   if (myAnswer === correctAnswer) {
       let earned = 100;
-      if (useTimer) {
-          earned = 60 + Math.floor((myLockedTime / (baseTimerDuration * 1000)) * 40);
-      }
+      if (useTimer) earned = 60 + Math.floor((myLockedTime / (baseTimerDuration * 1000)) * 40);
       
-      if (buffs.manifestDestiny) { earned *= 2; buffs.manifestDestiny = false; showToast("Double Points!", "good"); }
-      if (buffs.embargoAct) { earned = 0; buffs.embargoAct = false; showToast("Embargo Act negated points!", "bad"); }
+      if (buffs.doublePoints) { earned *= 2; buffs.doublePoints = false; showToast("Double Points!", "good"); }
+      if (buffs.zeroPoints) { earned = 0; buffs.zeroPoints = false; showToast("Silenced! 0 points.", "bad"); }
+      
       myScore += earned;
       myCorrectAnswers++;
   }
