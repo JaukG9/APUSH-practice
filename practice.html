@@ -12,8 +12,6 @@
     --ink:     #1a1209; --paper:   #f5efe2; --aged:    #e8dcc8;
     --sepia:   #c9a86c; --rust:    #9b3a1e; --forest:  #2d4a2d;
     --navy:    #1c2e4a; --correct: #2d6a2d; --wrong:   #8b1a1a;
-    --p1: #5a3e1b; --p2: #1c4a3e; --p3: #1c2e4a; --p4: #4a1c2e;
-    --p5: #6b3010; --p6: #2f2544; --p7: #524b26; --p8: #1b3847; --p9: #471b1b;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -112,23 +110,14 @@
 
 <div id="toast-container"></div>
 
-<h1 id="main-title">APUSH Practice</h1>
+<h1 id="main-title">AP Practice</h1>
 
 <div id="game-settings-module" class="hidden">
   <div class="menu-section">
-    <h4>Select Periods / Units</h4>
+    <h4 id="period-header">Select Periods / Units</h4>
     <div class="period-grid" id="period-toggles">
-      <button data-period="1">Per 1</button>
-      <button data-period="2">Per 2</button>
-      <button data-period="3">Per 3</button>
-      <button data-period="4">Per 4</button>
-      <button data-period="5">Per 5</button>
-      <button data-period="6">Per 6</button>
-      <button data-period="7">Per 7</button>
-      <button data-period="8">Per 8</button>
-      <button data-period="9">Per 9</button>
-    </div>
-    <button onclick="selectAllPeriods()">Select All Periods</button>
+      </div>
+    <button onclick="selectAllPeriods()">Select All</button>
   </div>
   
   <div class="settings-row menu-section">
@@ -153,7 +142,7 @@
     <h2 style="margin-bottom: 10px;">Select Subject</h2>
     <select id="subject-dropdown" onchange="updateThemeUI()" style="width: 100%; max-width: 300px; font-size: 1.5rem; border-color: var(--navy); color: var(--navy); font-weight: bold;">
       <option value="APUSH">APUSH</option>
-      <option value="ENGLISH">AP English</option>
+      <option value="APGOV">AP Gov (9 Documents)</option>
     </select>
   </div>
 
@@ -259,7 +248,6 @@
 const THEMES = {
   APUSH: {
     title: "APUSH Practice",
-    bank: "apushBank",
     powerups: {
       ELIM2: { name: "Abraham Lincoln", desc: "Elim. 2 Wrong" },
       AUTOCORRECT: { name: "George Washington", desc: "Auto-Correct" },
@@ -271,18 +259,17 @@ const THEMES = {
       ZERO: { name: "Embargo Act", desc: "Opponent gets 0" }
     }
   },
-  ENGLISH: {
-    title: "AP English Practice",
-    bank: "englishBank",
+  APGOV: {
+    title: "AP Gov Practice",
     powerups: {
-      ELIM2: { name: "Edgar Allan Poe", desc: "Elim. 2 Wrong" },
-      AUTOCORRECT: { name: "William Shakespeare", desc: "Auto-Correct" },
-      DOUBLE: { name: "Poetic License", desc: "Double Points" },
-      BLOCK: { name: "Writer's Block", desc: "Block 1 Attack" },
-      GAMBLE: { name: "Plot Twist", desc: "Win 200/Lose 100" },
-      NUKE: { name: "Deus Ex Machina", desc: "Nuke 1st Place" },
-      STEAL: { name: "The Artful Dodger", desc: "Steal 100 Pts" },
-      ZERO: { name: "Censorship", desc: "Opponent gets 0" }
+      ELIM2: { name: "Executive Privilege", desc: "Elim. 2 Wrong" },
+      AUTOCORRECT: { name: "Judicial Review", desc: "Auto-Correct" },
+      DOUBLE: { name: "Landslide Election", desc: "Double Points" },
+      BLOCK: { name: "Filibuster", desc: "Block 1 Attack" },
+      GAMBLE: { name: "Swing State", desc: "Win 200/Lose 100" },
+      NUKE: { name: "Impeachment", desc: "Nuke 1st Place" },
+      STEAL: { name: "Pork Barrel", desc: "Steal 100 Pts" },
+      ZERO: { name: "Gridlock", desc: "Opponent gets 0" }
     }
   }
 };
@@ -319,6 +306,11 @@ const peerConfig = {
     }
 };
 
+// INITIALIZATION
+window.onload = function() {
+  updateThemeUI();
+};
+
 // UI UPDATES
 function updateThemeUI() {
   selectedSubject = document.getElementById('subject-dropdown').value;
@@ -335,6 +327,44 @@ function updateThemeUI() {
   document.getElementById('tut-nuke').innerText = t.powerups.NUKE.name;
   document.getElementById('tut-steal').innerText = t.powerups.STEAL.name;
   document.getElementById('tut-zero').innerText = t.powerups.ZERO.name;
+
+  const periodToggles = document.getElementById('period-toggles');
+  if (selectedSubject === 'APUSH') {
+      document.getElementById('period-header').innerText = "Select Periods / Units";
+      periodToggles.innerHTML = `
+        <button class="active" data-period="1">Per 1</button>
+        <button class="active" data-period="2">Per 2</button>
+        <button class="active" data-period="3">Per 3</button>
+        <button class="active" data-period="4">Per 4</button>
+        <button class="active" data-period="5">Per 5</button>
+        <button class="active" data-period="6">Per 6</button>
+        <button class="active" data-period="7">Per 7</button>
+        <button class="active" data-period="8">Per 8</button>
+        <button class="active" data-period="9">Per 9</button>
+      `;
+  } else {
+      document.getElementById('period-header').innerText = "Select Foundational Documents";
+      periodToggles.innerHTML = `
+        <button class="active" data-period="1">1. Dec of Ind.</button>
+        <button class="active" data-period="2">2. Articles of Conf.</button>
+        <button class="active" data-period="3">3. Brutus 1</button>
+        <button class="active" data-period="4">4. Fed 10</button>
+        <button class="active" data-period="5">5. Fed 70</button>
+        <button class="active" data-period="6">6. Fed 51</button>
+        <button class="active" data-period="7">7. Fed 78</button>
+        <button class="active" data-period="8">8. Constitution</button>
+        <button class="active" data-period="9">9. Birmingham Jail</button>
+      `;
+  }
+
+  // Reattach listeners
+  document.querySelectorAll('#period-toggles button').forEach(b => {
+    b.addEventListener('click', (e) => { e.target.classList.toggle('active'); });
+  });
+}
+
+function selectAllPeriods() {
+  document.querySelectorAll('#period-toggles button').forEach(b => b.classList.add('active'));
 }
 
 function renderShop() {
@@ -385,7 +415,12 @@ function generateQuizBank(limit) {
   const activePeriods = new Set();
   document.querySelectorAll('#period-toggles button.active').forEach(b => activePeriods.add(parseInt(b.dataset.period)));
   
-  let targetBank = selectedSubject === 'APUSH' ? apushBank : englishBank;
+  if (activePeriods.size === 0) {
+      alert("Please select at least one Period/Doc to study!");
+      return [];
+  }
+
+  let targetBank = (selectedSubject === 'APUSH') ? apushBank : apGovBank;
 
   if (typeof targetBank === 'undefined') {
       alert("Error: questions.js file not found or formatted incorrectly!");
@@ -393,7 +428,10 @@ function generateQuizBank(limit) {
   }
 
   const filtered = targetBank.filter(item => activePeriods.has(item[0]));
-  if (filtered.length === 0) { alert("Select at least one period!"); return []; }
+  if (filtered.length === 0) { 
+      alert("No questions found for the selected topics. Try selecting more."); 
+      return []; 
+  }
   
   filtered.sort(() => Math.random() - 0.5);
   return filtered.slice(0, Math.min(limit, filtered.length)).map(q => {
@@ -409,7 +447,8 @@ function startSinglePlayer() {
   baseTimerDuration = parseInt(document.getElementById('timer-seconds').value) || 20;
 
   currentQuestions = generateQuizBank(count);
-  if (currentQuestions.length === 0) return;
+  if (currentQuestions.length === 0) return; 
+  
   isMultiplayer = false;
   startGameUI();
 }
@@ -480,6 +519,7 @@ function hostStartGame() {
 
   currentQuestions = generateQuizBank(count);
   if (currentQuestions.length === 0) return;
+  
   isMultiplayer = true;
   broadcast({ type: 'START', data: currentQuestions, useTimer: useTimer, baseTimerDuration: baseTimerDuration, subject: selectedSubject });
   startGameUI();
@@ -698,7 +738,8 @@ function loadQuestion() {
   document.getElementById('waiting-msg').style.display = 'none';
   
   const q = currentQuestions[currentIndex];
-  document.getElementById('question-text').innerHTML = `<strong style="color:var(--p${q.period})">[Unit ${q.period}]</strong><br/>${q.question}`;
+  let unitLabel = selectedSubject === 'APUSH' ? 'Period' : 'Doc';
+  document.getElementById('question-text').innerHTML = `<strong style="color:var(--p${q.period})">[${unitLabel} ${q.period}]</strong><br/>${q.question}`;
   
   const grid = document.getElementById('options-grid');
   grid.innerHTML = '';
