@@ -142,7 +142,7 @@
     <h2 style="margin-bottom: 10px;">Select Subject</h2>
     <select id="subject-dropdown" onchange="updateThemeUI()" style="width: 100%; max-width: 300px; font-size: 1.5rem; border-color: var(--navy); color: var(--navy); font-weight: bold;">
       <option value="APUSH">APUSH</option>
-      <option value="APGOV">AP Gov (9 Documents)</option>
+      <option value="APGOV">AP Gov</option>
     </select>
   </div>
 
@@ -332,28 +332,28 @@ function updateThemeUI() {
   if (selectedSubject === 'APUSH') {
       document.getElementById('period-header').innerText = "Select Periods / Units";
       periodToggles.innerHTML = `
-        <button class="active" data-period="1">Per 1</button>
-        <button class="active" data-period="2">Per 2</button>
-        <button class="active" data-period="3">Per 3</button>
-        <button class="active" data-period="4">Per 4</button>
-        <button class="active" data-period="5">Per 5</button>
-        <button class="active" data-period="6">Per 6</button>
-        <button class="active" data-period="7">Per 7</button>
-        <button class="active" data-period="8">Per 8</button>
-        <button class="active" data-period="9">Per 9</button>
+        <button data-period="2">Per 2</button>
+        <button data-period="1">Per 1</button>
+        <button data-period="3">Per 3</button>
+        <button data-period="4">Per 4</button>
+        <button data-period="5">Per 5</button>
+        <button data-period="6">Per 6</button>
+        <button data-period="7">Per 7</button>
+        <button data-period="8">Per 8</button>
+        <button data-period="9">Per 9</button>
       `;
   } else {
       document.getElementById('period-header').innerText = "Select Foundational Documents";
       periodToggles.innerHTML = `
-        <button class="active" data-period="1">1. Dec of Ind.</button>
-        <button class="active" data-period="2">2. Articles of Conf.</button>
-        <button class="active" data-period="3">3. Brutus 1</button>
-        <button class="active" data-period="4">4. Fed 10</button>
-        <button class="active" data-period="5">5. Fed 70</button>
-        <button class="active" data-period="6">6. Fed 51</button>
-        <button class="active" data-period="7">7. Fed 78</button>
-        <button class="active" data-period="8">8. Constitution</button>
-        <button class="active" data-period="9">9. Birmingham Jail</button>
+        <button data-period="1">1. Dec of Ind.</button>
+        <button data-period="2">2. Articles of Conf.</button>
+        <button data-period="3">3. Brutus 1</button>
+        <button data-period="4">4. Fed 10</button>
+        <button data-period="5">5. Fed 70</button>
+        <button data-period="6">6. Fed 51</button>
+        <button data-period="7">7. Fed 78</button>
+        <button data-period="8">8. Constitution</button>
+        <button data-period="9">9. Birmingham Jail</button>
       `;
   }
 
