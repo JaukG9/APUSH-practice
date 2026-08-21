@@ -3,921 +3,198 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Practice quizzes for APUSH, AP Government, and English prefixes and suffixes. Play solo or host a multiplayer match.">
+<meta name="color-scheme" content="light">
 <title>AP Practice</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
-<script src="questions.js"></script>
-<style>
-  :root {
-    --ink:     #1a1209; --paper:   #f5efe2; --aged:    #e8dcc8;
-    --sepia:   #c9a86c; --rust:    #9b3a1e; --forest:  #2d4a2d;
-    --navy:    #1c2e4a; --correct: #2d6a2d; --wrong:   #8b1a1a;
-  }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="styles.css">
 
-  body {
-    background: var(--paper); color: var(--ink); font-family: 'IBM Plex Sans', sans-serif;
-    font-weight: 300; min-height: 100vh;
-    background-image: repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(0,0,0,0.04) 28px), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
-    padding: 2rem; display: flex; flex-direction: column; align-items: center; overflow-x: hidden;
-  }
-
-  h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
-  h1 { font-size: 2.5rem; text-align: center; margin-bottom: 1.5rem; border-bottom: 2px solid var(--sepia); padding-bottom: 1rem; width: 100%; max-width: 800px;}
-
-  .container { width: 100%; max-width: 800px; background: rgba(255, 255, 255, 0.4); border: 1px solid var(--sepia); padding: 2rem; border-radius: 4px; box-shadow: 2px 4px 12px rgba(0,0,0,0.05); position: relative; text-align: center; }
-
-  .tutorial-box { background: rgba(255,255,255,0.7); border: 1px dashed var(--sepia); padding: 1.5rem; margin-top: 2rem; text-align: left; font-size: 0.95rem; line-height: 1.5; }
-  .tutorial-box h3 { color: var(--rust); margin-bottom: 10px; text-align: center;}
-  .tutorial-box ul { margin-left: 20px; margin-top: 10px; }
-  .tutorial-box li { margin-bottom: 8px; }
-  .powerup-name { font-weight: bold; font-family: 'IBM Plex Mono', monospace; color: var(--navy); }
-
-  .menu-section { margin-bottom: 2rem; text-align: left; }
-  .menu-section h4 { margin-bottom: 1rem; color: var(--rust); font-size: 1.5rem;}
-  .period-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 1rem; }
-  
-  button { font-family: 'IBM Plex Mono', monospace; background: var(--aged); border: 1px solid var(--sepia); padding: 10px; cursor: pointer; transition: all 0.2s; color: var(--ink); font-weight: 600; border-radius: 3px; }
-  button:hover:not(:disabled) { background: var(--sepia); color: white; }
-  button.active { background: var(--navy); color: white; border-color: var(--navy); }
-  button:disabled { opacity: 0.6; cursor: not-allowed; }
-
-  .big-btn { display: block; width: 100%; padding: 15px; font-size: 1.2rem; margin-top: 10px; background: var(--forest); color: white; border: none; }
-  .big-btn:hover:not(:disabled) { background: #1e361e; }
-  .big-btn.secondary { background: var(--navy); }
-  .big-btn.secondary:hover:not(:disabled) { background: #121f33; }
-  .big-btn.danger { background: var(--rust); }
-  .big-btn.danger:hover:not(:disabled) { background: #7a2a14; }
-
-  .settings-row { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding: 15px; background: rgba(255,255,255,0.5); border: 1px solid var(--sepia); }
-  
-  input[type="text"], input[type="number"], select { font-family: 'IBM Plex Mono', monospace; padding: 10px; font-size: 1.2rem; text-align: center; border: 1px solid var(--sepia); background: white; margin-bottom: 10px; }
-  input.code-input { text-transform: uppercase; letter-spacing: 2px; width: 100%; max-width: 300px; font-size: 1.5rem;}
-  
-  .room-code-display { font-size: 3.5rem; font-weight: bold; color: var(--rust); letter-spacing: 10px; margin: 1rem 0; font-family: 'IBM Plex Mono', monospace;}
-  .status-text { font-size: 1.2rem; margin: 1rem 0; font-weight: 600; color: var(--navy); }
-  .player-roster { margin: 1rem 0; padding: 1rem; background: rgba(255,255,255,0.6); border: 1px dashed var(--sepia); border-radius: 4px; text-align: left; max-height: 200px; overflow-y: auto; font-family: 'IBM Plex Mono', monospace; }
-  .roster-item { padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.1); }
-
-  #screen-quiz { text-align: left; }
-  .timer-container { width: 100%; background: var(--aged); height: 20px; border-radius: 10px; overflow: hidden; margin-bottom: 1rem; position: relative; border: 1px solid var(--sepia);}
-  .timer-fill { height: 100%; background: var(--forest); width: 100%; transition: width 0.05s linear, background-color 0.3s; }
-  .timer-fill.warning { background: var(--rust); }
-  .timer-text { position: absolute; top: 0; left: 0; width: 100%; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; font-weight: bold; line-height: 20px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);}
-
-  .stats-bar { display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--sepia); }
-  .chip { padding: 4px 8px; border-radius: 4px; background: var(--aged); font-weight: bold; }
-  .player-score { background: var(--navy); color: white; }
-  
-  .question-box { font-size: 1.25rem; margin-bottom: 1.5rem; line-height: 1.6; }
-  .options-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-  .option-btn { text-align: left; padding: 15px; font-size: 1.1rem; background: white; border: 1px solid var(--sepia); }
-  .option-btn:hover:not(:disabled) { transform: translateX(5px); background: var(--aged); }
-  .option-btn.selected { background: var(--sepia); color: white; border-color: var(--ink); }
-  .option-btn.correct-ans { background: var(--correct) !important; color: white; border-color: var(--correct); }
-  .option-btn.wrong-ans { background: var(--wrong) !important; color: white; border-color: var(--wrong); }
-  .option-btn.eliminated { opacity: 0.3; pointer-events: none; text-decoration: line-through; }
-
-  .overlay-msg { display: none; padding: 15px; margin-top: 15px; text-align: center; background: var(--aged); border: 2px dashed var(--sepia); font-weight: bold; font-family: 'IBM Plex Mono', monospace; }
-  
-  #leaderboard-modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(245, 239, 226, 0.98); z-index: 10; flex-direction: column; align-items: center; text-align: center; border-radius: 4px; padding-top: 2rem; overflow-y: auto;}
-  .lb-title { font-size: 2rem; color: var(--rust); margin-bottom: 0.5rem; font-family: 'Playfair Display', serif;}
-  .lb-list { width: 90%; max-width: 500px; background: white; border: 1px solid var(--sepia); margin-bottom: 1rem; max-height: 200px; overflow-y: auto; text-align: left; }
-  .lb-row { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid var(--aged); font-family: 'IBM Plex Mono', monospace; font-size: 1.1rem; }
-  .lb-row.me { background: var(--aged); font-weight: bold; }
-
-  .shop-container { width: 90%; max-width: 600px; border-top: 2px solid var(--sepia); padding-top: 1rem; margin-top: 1rem; }
-  .shop-container h4 { margin-bottom: 10px; color: var(--navy); }
-  .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
-  .shop-item { padding: 8px; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-  .shop-item strong { font-size: 0.9rem; margin-bottom: 4px; }
-  .shop-item span { color: var(--rust); font-weight: bold; }
-
-  #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-  .toast { background: var(--navy); color: white; padding: 15px 20px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3); animation: slideIn 0.3s ease-out forwards; }
-  .toast.bad { background: var(--wrong); }
-  .toast.good { background: var(--correct); }
-  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
-  .grade { font-size: 4rem; font-family: 'Playfair Display', serif; margin: 1rem 0; color: var(--ink); }
-  .app-screen { display: none; }
-  .app-screen.active { display: block; }
-  .hidden { display: none !important; }
-</style>
+<!-- Content banks load in parallel and never block first paint.
+     PeerJS is fetched on demand, only when a multiplayer match starts. -->
+<script src="questions.js" defer></script>
+<script src="affix-data.js" defer></script>
+<script src="app.js" defer></script>
 </head>
 <body>
 
-<div id="toast-container"></div>
+<noscript>
+  <p style="max-width:800px;text-align:center;">This practice game needs JavaScript enabled.</p>
+</noscript>
+
+<div id="toast-container" aria-live="polite" aria-atomic="false"></div>
 
 <h1 id="main-title">AP Practice</h1>
 
+<!-- Shared settings block. It is moved into whichever setup screen is active
+     so single player and the multiplayer host configure a match identically. -->
 <div id="game-settings-module" class="hidden">
-  <div class="menu-section">
-    <h4 id="period-header">Select Periods / Units</h4>
-    <div class="period-grid" id="period-toggles">
-      </div>
-    <button onclick="selectAllPeriods()">Select All</button>
-  </div>
-  
-  <div class="settings-row menu-section">
+  <div class="menu-section" id="filter-groups"></div>
+
+  <div class="settings-row">
     <label for="q-count"><h4>Number of Questions</h4></label>
-    <input type="number" id="q-count" value="10" min="1" max="800" style="width: 100px;">
+    <div class="inline-control">
+      <input type="number" id="q-count" value="10" min="1" max="200" inputmode="numeric">
+      <span class="subtle" id="pool-hint"></span>
+    </div>
   </div>
 
-  <div class="settings-row menu-section">
-    <label><h4>Timer Settings</h4></label>
-    <div style="display:flex; align-items:center;">
-      <label style="margin-right: 15px; font-weight:bold;">
-        <input type="checkbox" id="timer-toggle" checked onchange="document.getElementById('timer-seconds').disabled = !this.checked"> Enable Timer
-      </label>
-      <input type="number" id="timer-seconds" value="20" min="5" max="300" style="width: 80px; margin-bottom: 0;"> secs
+  <div class="settings-row">
+    <h4>Timer</h4>
+    <div class="inline-control">
+      <label for="timer-toggle"><input type="checkbox" id="timer-toggle" checked> Enable timer</label>
+      <label for="timer-seconds" class="sr-only">Seconds per question</label>
+      <input type="number" id="timer-seconds" value="20" min="5" max="300" inputmode="numeric">
+      <span class="subtle">secs</span>
     </div>
   </div>
 </div>
 
-<div class="container app-screen active" id="screen-main-menu">
-  
-  <div style="margin-bottom: 20px; text-align: center;">
-    <h2 style="margin-bottom: 10px;">Select Subject</h2>
-    <select id="subject-dropdown" onchange="updateThemeUI()" style="width: 100%; max-width: 300px; font-size: 1.5rem; border-color: var(--navy); color: var(--navy); font-weight: bold;">
+<!-- ===================== MAIN MENU ===================== -->
+<main class="container app-screen active" id="screen-main-menu">
+  <div class="menu-section">
+    <label class="field-label" for="subject-dropdown">Subject</label>
+    <select id="subject-dropdown" style="width:100%;max-width:340px;font-weight:600;color:var(--navy);">
       <option value="APUSH">APUSH</option>
       <option value="APGOV">AP Gov</option>
+      <option value="AFFIX">Prefix &amp; Suffix Practice</option>
     </select>
+    <p class="subtle" id="subject-blurb" style="margin-top:var(--sp-2);"></p>
   </div>
 
-  <h2>Enter Your Name</h2>
-  <input type="text" id="player-name-input" placeholder="Your Name" maxlength="15" style="width: 100%; max-width:300px;">
-  
-  <h2 style="margin-top: 1.5rem;">Select Game Mode</h2>
-  <button class="big-btn" onclick="setAndGo('SP')">Single Player</button>
-  <button class="big-btn secondary" onclick="setAndGo('MP')">Multiplayer</button>
-
-  <div class="tutorial-box">
-    <h3>How to Play & Powerups</h3>
-    <p><strong>The Timer:</strong> If enabled, faster correct answers grant more points. Wrong answers yield 0. If disabled, correct answers give a flat 100 points.</p>
-    <p><strong>The Shop (Multiplayer Only):</strong> Between rounds, you have 5 seconds to buy powerups using your score points!</p>
-    <ul>
-      <li><span class="powerup-name" id="tut-elim2">Abraham Lincoln</span> (Cost: 50): Eliminates 2 wrong answers (50/50).</li>
-      <li><span class="powerup-name" id="tut-auto">George Washington</span> (Cost: 150): Eliminates ALL wrong answers (Auto-corrects).</li>
-      <li><span class="powerup-name" id="tut-double">Manifest Destiny</span> (Cost: 50): Earn double points if correct.</li>
-      <li><span class="powerup-name" id="tut-block">Monroe Doctrine</span> (Cost: 100): Nullifies the very next attack against you (Stacks!).</li>
-      <li><span class="powerup-name" id="tut-nuke">Trustbusting</span> (Cost: 150): Destroys up to 200 points from the 1st Place player.</li>
-      <li><span class="powerup-name" id="tut-steal">Spoils System</span> (Cost: 150): Steals up to 100 points from ONE random opponent.</li>
-      <li><span class="powerup-name" id="tut-zero">Embargo Act</span> (Cost: 200): Forces an opponent to earn 0 points next question.</li>
-      <li><span class="powerup-name" id="tut-gamble">Gilded Age</span> (Cost: 75): 50% chance to gain 200 pts, 50% chance to lose 100 pts.</li>
-      <li style="color:var(--rust); margin-top:5px;"><strong>Limit:</strong> You can only use <strong>3 powerups</strong> per round.</li>
-    </ul>
+  <div class="menu-section">
+    <label class="field-label" for="player-name-input">Your Name</label>
+    <input type="text" id="player-name-input" placeholder="Your Name" maxlength="15" autocomplete="nickname" style="width:100%;max-width:340px;">
+    <span class="error-text" id="name-error" role="alert"></span>
   </div>
-</div>
 
-<div class="container app-screen" id="screen-sp-setup">
-  <h2>Single Player Setup</h2>
-  <div id="sp-settings-target"></div>
-  <button class="big-btn" onclick="startSinglePlayer()">Start Quiz</button>
-  <button class="big-btn danger" onclick="showScreen('screen-main-menu')">Back to Menu</button>
-</div>
+  <h2>Select Game Mode</h2>
+  <button type="button" class="big-btn" id="btn-single">Single Player</button>
+  <button type="button" class="big-btn secondary" id="btn-multi">Multiplayer</button>
 
-<div class="container app-screen" id="screen-mp-lobby">
-  <h2>Multiplayer Mode</h2>
-  <button class="big-btn" onclick="startHosting()">Host a Match</button>
-  <hr style="margin:20px 0; border:1px solid var(--sepia);">
+  <section class="tutorial-box" id="how-to-play" aria-labelledby="how-to-play-title">
+    <h3 id="how-to-play-title">How to Play</h3>
+    <div id="how-to-play-body"></div>
+  </section>
+</main>
+
+<!-- ===================== SINGLE PLAYER SETUP ===================== -->
+<section class="container app-screen" id="screen-sp-setup" aria-labelledby="sp-setup-title">
+  <h2 id="sp-setup-title">Single Player Setup</h2>
+  <div class="tutorial-box" id="sp-brief"></div>
+  <div id="sp-settings-target" style="margin-top:var(--sp-5);"></div>
+  <span class="error-text" id="sp-error" role="alert"></span>
+  <div class="button-row" style="margin-top:var(--sp-4);">
+    <button type="button" class="big-btn" id="btn-start-sp">Start Quiz</button>
+    <button type="button" class="big-btn quiet" data-nav="screen-main-menu">Back to Menu</button>
+  </div>
+</section>
+
+<!-- ===================== MULTIPLAYER LOBBY ===================== -->
+<section class="container app-screen" id="screen-mp-lobby" aria-labelledby="mp-lobby-title">
+  <h2 id="mp-lobby-title">Multiplayer</h2>
+  <p class="subtle">One player hosts and picks the settings; everyone else joins with the room code.</p>
+  <button type="button" class="big-btn" id="btn-host">Host a Match</button>
+
+  <hr class="rule">
+
   <h3>Join a Match</h3>
-  <input type="text" class="code-input" id="join-code-input" placeholder="4-LETTER CODE" maxlength="4">
-  <button class="big-btn secondary" id="join-btn" onclick="joinGame()">Join Room</button>
-  <button class="big-btn danger" onclick="showScreen('screen-main-menu')">Back to Menu</button>
-  <p class="status-text" id="join-status-msg"></p>
-</div>
+  <label class="sr-only" for="join-code-input">Four letter room code</label>
+  <input type="text" class="code-input" id="join-code-input" placeholder="CODE" maxlength="4" autocomplete="off" spellcheck="false">
+  <button type="button" class="big-btn secondary" id="join-btn">Join Room</button>
+  <p class="status-text" id="join-status-msg" role="status"></p>
+  <button type="button" class="big-btn quiet" data-nav="screen-main-menu">Back to Menu</button>
+</section>
 
-<div class="container app-screen" id="screen-mp-host">
-  <h2>Hosting Match</h2>
-  <p>Give this code to your friends:</p>
-  <div class="room-code-display" id="room-code">----</div>
+<!-- ===================== MULTIPLAYER HOST ===================== -->
+<section class="container app-screen" id="screen-mp-host" aria-labelledby="mp-host-title">
+  <h2 id="mp-host-title">Hosting a Match</h2>
+  <p>Share this code with your friends:</p>
+  <div class="room-code-display" id="room-code" role="status" aria-label="Room code">----</div>
   <div id="host-settings-target"></div>
-  <h4>Players in Room:</h4>
-  <div class="player-roster" id="host-roster">Loading...</div>
-  <button class="big-btn" id="start-mp-btn" onclick="hostStartGame()">Start Match Now</button>
-  <button class="big-btn danger" onclick="quitToMenu()">Cancel Lobby</button>
-</div>
+  <span class="error-text" id="host-error" role="alert"></span>
+  <h4 style="text-align:left;margin-top:var(--sp-5);">Players in Room</h4>
+  <div class="player-roster" id="host-roster" role="status"></div>
+  <div class="button-row">
+    <button type="button" class="big-btn" id="start-mp-btn">Start Match</button>
+    <button type="button" class="big-btn danger" data-quit>Cancel Lobby</button>
+  </div>
+</section>
 
-<div class="container app-screen" id="screen-mp-join">
-  <h2>Joined Match</h2>
+<!-- ===================== MULTIPLAYER JOINED ===================== -->
+<section class="container app-screen" id="screen-mp-join" aria-labelledby="mp-join-title">
+  <h2 id="mp-join-title">Joined Match</h2>
   <div class="room-code-display" id="joined-room-code"></div>
-  <p class="status-text" style="color: var(--correct);">Successfully Connected!</p>
-  <h4>Players in Room:</h4>
-  <div class="player-roster" id="join-roster">Loading...</div>
-  <p>Waiting for the host to select settings and start the match...</p>
-  <button class="big-btn danger" style="margin-top:20px;" onclick="quitToMenu()">Leave Match</button>
-</div>
+  <p class="status-text" style="color:var(--correct);">Connected</p>
+  <h4 style="text-align:left;">Players in Room</h4>
+  <div class="player-roster" id="join-roster" role="status"></div>
+  <p class="subtle">Waiting for the host to choose settings and start the match.</p>
+  <button type="button" class="big-btn danger" data-quit>Leave Match</button>
+</section>
 
-<div class="container app-screen" id="screen-quiz">
-  <div id="leaderboard-modal">
-    <div class="lb-title">Round Complete!</div>
+<!-- ===================== QUIZ ===================== -->
+<section class="container app-screen" id="screen-quiz" aria-labelledby="question-text">
+  <div id="leaderboard-modal" role="dialog" aria-label="Round standings">
+    <p class="lb-title">Round Complete</p>
     <div class="lb-list" id="lb-list-container"></div>
-    <div style="color: var(--rust); font-size: 1.2rem; margin-bottom: 10px;">Next round in <span id="lb-timer">5</span>...</div>
-    
+    <p style="color:var(--rust);margin-bottom:var(--sp-3);">Next round in <span id="lb-timer">5</span>...</p>
     <div class="shop-container" id="shop-container">
-       <h4>Powerup Shop</h4>
-       <div class="shop-grid" id="dynamic-shop-grid">
-           </div>
+      <h4>Powerup Shop</h4>
+      <div class="shop-grid" id="dynamic-shop-grid"></div>
     </div>
   </div>
 
-  <div class="timer-container" id="timer-wrapper"><div class="timer-fill" id="timer-bar"></div><div class="timer-text" id="timer-text">20.0s</div></div>
-  <div class="stats-bar">
-    <span class="chip" id="chip-remaining">Question: 1</span>
-    <span class="chip player-score" id="chip-score">Score: 0</span>
-    <span class="chip" id="chip-players-connected" style="background:var(--sepia); color:white;">Players: 1</span>
+  <div class="timer-container" id="timer-wrapper">
+    <div class="timer-fill" id="timer-bar"></div>
+    <div class="timer-text" id="timer-text">20.0s</div>
   </div>
-  <div class="question-box" id="question-text">Loading question...</div>
-  <div class="options-grid" id="options-grid"></div>
-  <div class="overlay-msg" id="waiting-msg">Waiting for other players...</div>
-  
-  <button class="big-btn danger" style="padding: 10px; font-size: 1rem; margin-top: 25px;" onclick="quitToMenu()">Quit to Main Menu</button>
-</div>
 
-<div class="container app-screen" id="screen-results">
-  <h2>Match Complete</h2>
-  <div class="grade" id="final-outcome">Victory!</div>
-  <div class="lb-list" id="final-lb-container" style="margin: 0 auto 2rem auto;"></div>
-  <button class="big-btn" onclick="quitToMenu()">Return to Main Menu</button>
-</div>
+  <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
 
-<script>
-// THEMES & POWERUPS CONFIG
-const THEMES = {
-  APUSH: {
-    title: "APUSH Practice",
-    powerups: {
-      ELIM2: { name: "Abraham Lincoln", desc: "Elim. 2 Wrong" },
-      AUTOCORRECT: { name: "George Washington", desc: "Auto-Correct" },
-      DOUBLE: { name: "Manifest Destiny", desc: "Double Points" },
-      BLOCK: { name: "Monroe Doctrine", desc: "Block 1 Attack" },
-      GAMBLE: { name: "Gilded Age", desc: "Win 200/Lose 100" },
-      NUKE: { name: "Trustbusting", desc: "Nuke 1st Place" },
-      STEAL: { name: "Spoils System", desc: "Steal 100 Pts" },
-      ZERO: { name: "Embargo Act", desc: "Opponent gets 0" }
-    }
-  },
-  APGOV: {
-    title: "AP Gov Practice",
-    powerups: {
-      ELIM2: { name: "Executive Privilege", desc: "Elim. 2 Wrong" },
-      AUTOCORRECT: { name: "Judicial Review", desc: "Auto-Correct" },
-      DOUBLE: { name: "Landslide Election", desc: "Double Points" },
-      BLOCK: { name: "Filibuster", desc: "Block 1 Attack" },
-      GAMBLE: { name: "Swing State", desc: "Win 200/Lose 100" },
-      NUKE: { name: "Impeachment", desc: "Nuke 1st Place" },
-      STEAL: { name: "Pork Barrel", desc: "Steal 100 Pts" },
-      ZERO: { name: "Gridlock", desc: "Opponent gets 0" }
-    }
-  }
-};
+  <div class="stats-bar">
+    <span class="chip" id="chip-remaining">Q 1 / 10</span>
+    <span class="chip player-score" id="chip-score">Correct: 0 / 0</span>
+    <span class="chip streak" id="chip-streak" data-cold="true">Streak: 0</span>
+    <span class="chip players hidden" id="chip-players-connected">Players: 1</span>
+  </div>
 
-// STATE VARIABLES
-let selectedSubject = 'APUSH';
-let myName = "Player";
-let currentQuestions = [];
-let currentIndex = 0;
-let myScore = 0;
-let myCorrectAnswers = 0; 
-let currentLeader = null; 
+  <div id="question-meta"></div>
+  <h2 class="question-box" id="question-text">Loading question...</h2>
 
-let useTimer = true;
-let baseTimerDuration = 20;
-let timeLeft = 20000;
-let timerInterval = null;
-let roundTimerInterval = null;
-let myLockedTime = 0;
-let myAnswer = null;
+  <div class="options-grid" id="options-grid" role="group" aria-label="Answer choices"></div>
 
-let buffs = { doublePoints: false, blockAttacks: 0, elim2: false, autocorrect: false, zeroPoints: false };
-let peer = null, conn = null, isHost = false, isMultiplayer = false;
-let hostAnswer = null;
-let players = {}; 
-let powerupsUsedThisRound = 0;
+  <div class="feedback-panel hidden" id="feedback-panel" role="status" aria-live="polite"></div>
+  <div class="overlay-msg hidden" id="waiting-msg" role="status">Waiting for other players...</div>
 
-const peerConfig = {
-    config: {
-        'iceServers': [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-    }
-};
+  <div class="quiz-actions">
+    <button type="button" class="big-btn hidden" id="btn-next">Next Question</button>
+    <button type="button" class="big-btn danger quit" data-quit>Quit to Menu</button>
+  </div>
+  <p class="subtle" id="keyboard-hint" style="margin-top:var(--sp-3);">Keyboard: press <strong>1-4</strong> to answer, <strong>Enter</strong> to continue.</p>
+</section>
 
-// INITIALIZATION
-window.onload = function() {
-  updateThemeUI();
-};
+<!-- ===================== RESULTS ===================== -->
+<section class="container app-screen" id="screen-results" aria-labelledby="final-outcome">
+  <h2>Session Complete</h2>
+  <p class="grade" id="final-outcome">Complete</p>
+  <p class="subtle" id="final-summary"></p>
 
-// UI UPDATES
-function updateThemeUI() {
-  selectedSubject = document.getElementById('subject-dropdown').value;
-  let t = THEMES[selectedSubject];
-  
-  document.title = t.title;
-  document.getElementById('main-title').innerText = t.title;
-  
-  document.getElementById('tut-elim2').innerText = t.powerups.ELIM2.name;
-  document.getElementById('tut-auto').innerText = t.powerups.AUTOCORRECT.name;
-  document.getElementById('tut-double').innerText = t.powerups.DOUBLE.name;
-  document.getElementById('tut-block').innerText = t.powerups.BLOCK.name;
-  document.getElementById('tut-gamble').innerText = t.powerups.GAMBLE.name;
-  document.getElementById('tut-nuke').innerText = t.powerups.NUKE.name;
-  document.getElementById('tut-steal').innerText = t.powerups.STEAL.name;
-  document.getElementById('tut-zero').innerText = t.powerups.ZERO.name;
+  <div class="score-grid" id="final-score-grid"></div>
+  <div class="lb-list hidden" id="final-lb-container"></div>
 
-  const periodToggles = document.getElementById('period-toggles');
-  if (selectedSubject === 'APUSH') {
-      document.getElementById('period-header').innerText = "Select Periods / Units";
-      periodToggles.innerHTML = `
-        <button data-period="2">Per 2</button>
-        <button data-period="1">Per 1</button>
-        <button data-period="3">Per 3</button>
-        <button data-period="4">Per 4</button>
-        <button data-period="5">Per 5</button>
-        <button data-period="6">Per 6</button>
-        <button data-period="7">Per 7</button>
-        <button data-period="8">Per 8</button>
-        <button data-period="9">Per 9</button>
-      `;
-  } else {
-      document.getElementById('period-header').innerText = "Select Foundational Documents";
-      periodToggles.innerHTML = `
-        <button data-period="1">1. Dec of Ind.</button>
-        <button data-period="2">2. Articles of Conf.</button>
-        <button data-period="3">3. Brutus 1</button>
-        <button data-period="4">4. Fed 10</button>
-        <button data-period="5">5. Fed 70</button>
-        <button data-period="6">6. Fed 51</button>
-        <button data-period="7">7. Fed 78</button>
-        <button data-period="8">8. Constitution</button>
-        <button data-period="9">9. Birmingham Jail</button>
-      `;
-  }
+  <details class="review-block hidden" id="review-block">
+    <summary id="review-summary">Review what you missed</summary>
+    <div id="review-list"></div>
+  </details>
 
-  // Reattach listeners
-  document.querySelectorAll('#period-toggles button').forEach(b => {
-    b.addEventListener('click', (e) => { e.target.classList.toggle('active'); });
-  });
-}
+  <div class="button-row">
+    <button type="button" class="big-btn" id="btn-play-again">Play Again</button>
+    <button type="button" class="big-btn secondary" id="btn-change-settings">Change Settings</button>
+    <button type="button" class="big-btn quiet" id="btn-results-menu">Main Menu</button>
+  </div>
+</section>
 
-function selectAllPeriods() {
-  document.querySelectorAll('#period-toggles button').forEach(b => b.classList.add('active'));
-}
-
-function renderShop() {
-  let t = THEMES[selectedSubject];
-  let grid = document.getElementById('dynamic-shop-grid');
-  grid.innerHTML = `
-    <button class="shop-item" onclick="buyPowerup('ELIM2', 50)"><strong>${t.powerups.ELIM2.name}</strong><br>${t.powerups.ELIM2.desc}<br><span>Cost: 50</span></button>
-    <button class="shop-item" onclick="buyPowerup('AUTOCORRECT', 150)"><strong>${t.powerups.AUTOCORRECT.name}</strong><br>${t.powerups.AUTOCORRECT.desc}<br><span>Cost: 150</span></button>
-    <button class="shop-item" onclick="buyPowerup('DOUBLE', 50)"><strong>${t.powerups.DOUBLE.name}</strong><br>${t.powerups.DOUBLE.desc}<br><span>Cost: 50</span></button>
-    <button class="shop-item" onclick="buyPowerup('BLOCK', 100)"><strong>${t.powerups.BLOCK.name}</strong><br>${t.powerups.BLOCK.desc}<br><span>Cost: 100</span></button>
-    <button class="shop-item" onclick="buyPowerup('GAMBLE', 75)"><strong>${t.powerups.GAMBLE.name}</strong><br>${t.powerups.GAMBLE.desc}<br><span>Cost: 75</span></button>
-    <button class="shop-item" onclick="buyPowerup('NUKE', 150)"><strong>${t.powerups.NUKE.name}</strong><br>${t.powerups.NUKE.desc}<br><span>Cost: 150</span></button>
-    <button class="shop-item" onclick="buyPowerup('STEAL', 150)"><strong>${t.powerups.STEAL.name}</strong><br>${t.powerups.STEAL.desc}<br><span>Cost: 150</span></button>
-    <button class="shop-item" onclick="buyPowerup('ZERO', 200)"><strong>${t.powerups.ZERO.name}</strong><br>${t.powerups.ZERO.desc}<br><span>Cost: 200</span></button>
-  `;
-}
-
-function showScreen(screenId) {
-  document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(screenId).classList.add('active');
-}
-
-function showToast(msg, type='good') {
-  const container = document.getElementById('toast-container');
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.innerText = msg;
-  container.appendChild(toast);
-  setTimeout(() => { toast.remove(); }, 3000);
-}
-
-function mountSettings(targetId) {
-  const target = document.getElementById(targetId);
-  const settingsModule = document.getElementById('game-settings-module');
-  settingsModule.classList.remove('hidden');
-  target.appendChild(settingsModule);
-}
-
-function setAndGo(mode) {
-  const inputName = document.getElementById('player-name-input').value.trim();
-  if (!inputName) return alert("Please enter your name first!");
-  myName = inputName;
-  if (mode === 'SP') { mountSettings('sp-settings-target'); showScreen('screen-sp-setup'); } 
-  else { showScreen('screen-mp-lobby'); }
-}
-
-function generateQuizBank(limit) {
-  const activePeriods = new Set();
-  document.querySelectorAll('#period-toggles button.active').forEach(b => activePeriods.add(parseInt(b.dataset.period)));
-  
-  if (activePeriods.size === 0) {
-      alert("Please select at least one Period/Doc to study!");
-      return [];
-  }
-
-  let targetBank = (selectedSubject === 'APUSH') ? apushBank : apGovBank;
-
-  if (typeof targetBank === 'undefined') {
-      alert("Error: questions.js file not found or formatted incorrectly!");
-      return [];
-  }
-
-  const filtered = targetBank.filter(item => activePeriods.has(item[0]));
-  if (filtered.length === 0) { 
-      alert("No questions found for the selected topics. Try selecting more."); 
-      return []; 
-  }
-  
-  filtered.sort(() => Math.random() - 0.5);
-  return filtered.slice(0, Math.min(limit, filtered.length)).map(q => {
-    const options = [q[2], q[3], q[4], q[5]];
-    options.sort(() => Math.random() - 0.5);
-    return { period: q[0], question: q[1], options: options, answer: q[2] };
-  });
-}
-
-function startSinglePlayer() {
-  const count = parseInt(document.getElementById('q-count').value) || 10;
-  useTimer = document.getElementById('timer-toggle').checked;
-  baseTimerDuration = parseInt(document.getElementById('timer-seconds').value) || 20;
-
-  currentQuestions = generateQuizBank(count);
-  if (currentQuestions.length === 0) return; 
-  
-  isMultiplayer = false;
-  startGameUI();
-}
-
-function generateRoomCode() {
-  const chars = 'BCDFGHJKLMNPQRSTVWXYZ';
-  let result = '';
-  for(let i=0; i<4; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
-  return result;
-}
-
-function startHosting() {
-  mountSettings('host-settings-target'); showScreen('screen-mp-host');
-  document.getElementById('room-code').innerText = "....";
-  peer = new Peer(generateRoomCode(), peerConfig);
-  isHost = true;
-  
-  peer.on('open', (id) => { document.getElementById('room-code').innerText = id; updateHostRoster(); });
-  peer.on('error', (err) => { showToast("Network Error: " + err.type, "bad"); });
-
-  peer.on('connection', (connection) => {
-    connection.on('data', (msg) => {
-      if (msg.type === 'JOIN') {
-        players[connection.peer] = { conn: connection, name: msg.name, score: 0, answer: null };
-        updateHostRoster();
-      } 
-      else if (msg.type === 'ANSWER_SUBMITTED') {
-        if (players[connection.peer]) players[connection.peer].answer = msg.answer;
-        checkAllAnswered();
-      }
-      else if (msg.type === 'ATTACK') { processAttackFromClient(connection.peer, msg.attackType); }
-      else if (msg.type === 'ATTACK_SUCCESS') {
-        if (msg.attacker === 'HOST') { 
-            myScore += msg.amount; updateStats(); 
-            showToast(`You successfully stole ${msg.amount} pts!`, 'good'); 
-            renderDynamicLeaderboard();
-        }
-        else if (players[msg.attacker]) {
-            players[msg.attacker].score += msg.amount;
-            players[msg.attacker].conn.send({ type: 'TOAST', msg: `You successfully stole ${msg.amount} pts!`, t: 'good' });
-            players[msg.attacker].conn.send({ type: 'SCORE_SYNC', score: players[msg.attacker].score });
-            renderDynamicLeaderboard();
-        }
-      }
-      else if (msg.type === 'SCORE_SYNC') {
-        if (players[connection.peer]) { players[connection.peer].score = msg.score; renderDynamicLeaderboard(); }
-      }
-    });
-    connection.on('close', () => { delete players[connection.peer]; updateHostRoster(); checkAllAnswered(); });
-  });
-}
-
-function updateHostRoster() {
-  const rosterDiv = document.getElementById('host-roster');
-  let names = Object.values(players).map(p => p.name);
-  let html = `<div class="roster-item" style="color:var(--correct); font-weight:bold;">${myName} (Host)</div>`;
-  names.forEach(n => html += `<div class="roster-item">${n}</div>`);
-  rosterDiv.innerHTML = html;
-  broadcast({ type: 'ROSTER_UPDATE', names: names, hostName: myName });
-}
-
-function broadcast(data) { Object.values(players).forEach(p => { if (p.conn && p.conn.open) p.conn.send(data); }); }
-
-function hostStartGame() {
-  const count = parseInt(document.getElementById('q-count').value) || 10;
-  useTimer = document.getElementById('timer-toggle').checked;
-  baseTimerDuration = parseInt(document.getElementById('timer-seconds').value) || 20;
-
-  currentQuestions = generateQuizBank(count);
-  if (currentQuestions.length === 0) return;
-  
-  isMultiplayer = true;
-  broadcast({ type: 'START', data: currentQuestions, useTimer: useTimer, baseTimerDuration: baseTimerDuration, subject: selectedSubject });
-  startGameUI();
-}
-
-function joinGame() {
-  const code = document.getElementById('join-code-input').value.toUpperCase();
-  if (code.length !== 4) return alert("Invalid code.");
-  document.getElementById('join-btn').disabled = true;
-  document.getElementById('join-status-msg').innerText = "Connecting...";
-  peer = new Peer(peerConfig);
-  
-  peer.on('open', () => { conn = peer.connect(code); isHost = false; setupClientConnection(); });
-  peer.on('error', (err) => {
-      if (err.type === 'peer-unavailable') { showToast("Room not found.", "bad"); document.getElementById('join-status-msg').innerText = "Room not found."; } 
-      else { showToast("Network Error.", "bad"); document.getElementById('join-status-msg').innerText = "Connection failed."; }
-      document.getElementById('join-btn').disabled = false;
-  });
-}
-
-function setupClientConnection() {
-  conn.on('open', () => {
-    isMultiplayer = true;
-    document.getElementById('joined-room-code').innerText = conn.peer;
-    showScreen('screen-mp-join');
-    conn.send({ type: 'JOIN', name: myName });
-  });
-
-  conn.on('data', (msg) => {
-    if (msg.type === 'ROSTER_UPDATE') {
-      let html = `<div class="roster-item" style="color:var(--correct); font-weight:bold;">${msg.hostName} (Host)</div>`;
-      msg.names.forEach(n => { html += `<div class="roster-item" ${n===myName?'style="font-weight:bold;"':''}>${n} ${n===myName?'(You)':''}</div>`; });
-      document.getElementById('join-roster').innerHTML = html;
-    }
-    else if (msg.type === 'START') { 
-      currentQuestions = msg.data; 
-      useTimer = msg.useTimer;
-      baseTimerDuration = msg.baseTimerDuration;
-      selectedSubject = msg.subject; // Sync subject from host
-      startGameUI(); 
-    } 
-    else if (msg.type === 'ROUND_RESULTS') { showRoundResults(msg.correctAnswer); } 
-    else if (msg.type === 'NEXT_QUESTION') { closeLeaderboardAndNext(); }
-    else if (msg.type === 'LB_SYNC') { currentLeader = msg.leader; renderLBHTML(msg.lb); }
-    else if (msg.type === 'ATTACK_RECEIVED') { handleIncomingAttack(msg.attackType, msg.attacker); }
-    else if (msg.type === 'TOAST') { showToast(msg.msg, msg.t); }
-    else if (msg.type === 'SCORE_SYNC') { myScore = msg.score; updateStats(); }
-  });
-  conn.on('close', () => { quitToMenu(); alert("Host disconnected! Returning to menu."); });
-}
-
-function quitToMenu() {
-  if (confirm("Are you sure you want to quit the match and return to the main menu?")) {
-    if (timerInterval) clearInterval(timerInterval);
-    if (roundTimerInterval) clearInterval(roundTimerInterval);
-    if (conn) { conn.close(); conn = null; }
-    if (peer) { peer.destroy(); peer = null; }
-    isMultiplayer = false; isHost = false; players = {};
-    document.getElementById('leaderboard-modal').style.display = 'none';
-    document.getElementById('join-btn').disabled = false;
-    document.getElementById('join-status-msg').innerText = "";
-    showScreen('screen-main-menu');
-  }
-}
-
-function buyPowerup(type, cost) {
-  if (powerupsUsedThisRound >= 3) return showToast("Limit reached: 3 powerups per round!", "bad");
-  if (myScore < cost) return showToast("Not enough points!", "bad");
-  
-  myScore -= cost; 
-  powerupsUsedThisRound++;
-  updateStats();
-  
-  let tName = THEMES[selectedSubject].powerups[type].name;
-  
-  if (type === 'ELIM2') { buffs.elim2 = true; showToast(`Purchased ${tName} (50/50)!`); }
-  if (type === 'AUTOCORRECT') { buffs.autocorrect = true; showToast(`Purchased ${tName} (Auto-correct)!`); }
-  if (type === 'DOUBLE') { buffs.doublePoints = true; showToast(`Purchased ${tName}!`); }
-  if (type === 'BLOCK') { buffs.blockAttacks++; showToast(`Purchased ${tName} (Stacks: ${buffs.blockAttacks})!`); }
-  
-  if (type === 'GAMBLE') {
-    if (Math.random() > 0.5) { myScore += 200; showToast(`${tName}: Won 200 points!`, "good"); } 
-    else { let lost = Math.min(myScore, 100); myScore -= lost; showToast(`${tName}: Lost ${lost} points!`, "bad"); }
-    updateStats();
-  }
-
-  if (['NUKE', 'STEAL', 'ZERO'].includes(type)) {
-    if (!isMultiplayer) return showToast("Attacks do nothing in Single Player!", "bad");
-    showToast(`Launched ${tName} attack!`);
-    
-    if (isHost) processAttackFromHost(type);
-    else conn.send({ type: 'ATTACK', attackType: type });
-  }
-  
-  if(!isHost) conn.send({ type: 'SCORE_SYNC', score: myScore }); 
-  else renderDynamicLeaderboard();
-}
-
-function processAttackFromHost(type) {
-  let attackerId = 'HOST';
-  if (type === 'STEAL' || type === 'ZERO') {
-      let targetIds = Object.keys(players);
-      if (targetIds.length > 0) {
-          let target = targetIds[Math.floor(Math.random() * targetIds.length)];
-          players[target].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
-      } else { showToast("No opponents to target!", "bad"); }
-  } else {
-      Object.keys(players).forEach(id => {
-          if (players[id].conn) players[id].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
-      });
-  }
-}
-
-function processAttackFromClient(attackerId, type) {
-  if (type === 'STEAL' || type === 'ZERO') {
-      let targetIds = Object.keys(players).filter(id => id !== attackerId);
-      targetIds.push('HOST');
-      if (targetIds.length > 0) {
-          let target = targetIds[Math.floor(Math.random() * targetIds.length)];
-          if (target === 'HOST') handleIncomingAttack(type, attackerId);
-          else players[target].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
-      }
-  } else {
-      Object.keys(players).forEach(id => {
-          if (id !== attackerId && players[id].conn) players[id].conn.send({ type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
-      });
-      handleIncomingAttack(type, attackerId);
-  }
-}
-
-function handleIncomingAttack(type, attackerId) {
-  if (buffs.blockAttacks > 0) {
-    buffs.blockAttacks--; showToast(`Block Powerup prevented an attack! (${buffs.blockAttacks} left)`, "good"); return;
-  }
-
-  let damageTaken = 0;
-  if (type === 'NUKE') {
-    if (myName === currentLeader) { damageTaken = Math.min(myScore, 200); showToast(`Nuked! You lost ${damageTaken} points.`, "bad"); }
-  } else if (type === 'STEAL') {
-    damageTaken = Math.min(myScore, 100); showToast(`Stolen from! You were robbed of ${damageTaken} points.`, "bad");
-  } else if (type === 'ZERO') {
-    buffs.zeroPoints = true; showToast("Silenced! Next question gives 0 points.", "bad");
-  }
-
-  if (damageTaken > 0) {
-    myScore -= damageTaken; updateStats();
-    if (isHost) {
-      if (players[attackerId]) {
-        players[attackerId].score += damageTaken;
-        players[attackerId].conn.send({ type: 'TOAST', msg: `Stole ${damageTaken} pts!`, t: 'good' });
-        players[attackerId].conn.send({ type: 'SCORE_SYNC', score: players[attackerId].score });
-        renderDynamicLeaderboard();
-      }
-    } else {
-      conn.send({ type: 'ATTACK_SUCCESS', amount: damageTaken, attacker: attackerId });
-      conn.send({ type: 'SCORE_SYNC', score: myScore }); 
-    }
-  }
-}
-
-function startGameUI() {
-  showScreen('screen-quiz');
-  
-  if (isMultiplayer) {
-      document.getElementById('chip-players-connected').classList.remove('hidden');
-      renderShop();
-      document.querySelector('.shop-container').style.display = 'block';
-  } else {
-      document.getElementById('chip-players-connected').classList.add('hidden');
-      document.querySelector('.shop-container').style.display = 'none'; 
-  }
-  
-  if (!useTimer) document.getElementById('timer-wrapper').style.display = 'none';
-  else document.getElementById('timer-wrapper').style.display = 'block';
-
-  currentIndex = 0; myScore = 0; myCorrectAnswers = 0; hostAnswer = null;
-  buffs = { doublePoints: false, blockAttacks: 0, elim2: false, autocorrect: false, zeroPoints: false };
-  loadQuestion();
-}
-
-function startTimer() {
-  if (timerInterval) clearInterval(timerInterval);
-  if (!useTimer) return;
-
-  timeLeft = baseTimerDuration * 1000;
-  document.getElementById('timer-text').innerText = baseTimerDuration.toFixed(1) + "s";
-  document.getElementById('timer-bar').style.width = "100%";
-  document.getElementById('timer-bar').className = "timer-fill";
-
-  timerInterval = setInterval(() => {
-    timeLeft -= 50;
-    
-    let display = (Math.max(0, timeLeft) / 1000).toFixed(1);
-    document.getElementById('timer-text').innerText = display + "s";
-    document.getElementById('timer-bar').style.width = (Math.max(0, timeLeft) / (baseTimerDuration * 10)) + "%";
-    
-    if (timeLeft <= (baseTimerDuration * 1000 * 0.25)) document.getElementById('timer-bar').classList.add('warning');
-    
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      if (myAnswer === null) handleAnswer('[TIMEOUT]', null);
-      if (isHost || !isMultiplayer) {
-          const correctAnswer = currentQuestions[currentIndex].answer;
-          if (isMultiplayer) broadcast({ type: 'ROUND_RESULTS', correctAnswer: correctAnswer });
-          showRoundResults(correctAnswer);
-      }
-    }
-  }, 50);
-}
-
-function loadQuestion() {
-  if (currentIndex >= currentQuestions.length) return endGame();
-  
-  myAnswer = null; myLockedTime = 0;
-  if(isHost) { hostAnswer = null; Object.keys(players).forEach(id => players[id].answer = null); }
-  document.getElementById('waiting-msg').style.display = 'none';
-  
-  const q = currentQuestions[currentIndex];
-  let unitLabel = selectedSubject === 'APUSH' ? 'Period' : 'Doc';
-  document.getElementById('question-text').innerHTML = `<strong style="color:var(--p${q.period})">[${unitLabel} ${q.period}]</strong><br/>${q.question}`;
-  
-  const grid = document.getElementById('options-grid');
-  grid.innerHTML = '';
-  
-  let btns = [];
-  q.options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.className = 'option-btn';
-    btn.innerText = opt;
-    btn.onclick = () => handleAnswer(opt, btn);
-    grid.appendChild(btn);
-    btns.push(btn);
-  });
-
-  if (buffs.autocorrect) {
-    buffs.autocorrect = false;
-    btns.forEach(b => { if (b.innerText !== q.answer) b.classList.add('eliminated'); });
-  } else if (buffs.elim2) {
-    buffs.elim2 = false;
-    let wrongs = btns.filter(b => b.innerText !== q.answer);
-    wrongs[0].classList.add('eliminated');
-    wrongs[1].classList.add('eliminated');
-  }
-  
-  updateStats();
-  startTimer();
-}
-
-function handleAnswer(selected, btn) {
-  if (myAnswer !== null) return; 
-  myLockedTime = Math.max(0, timeLeft); 
-  myAnswer = selected;
-  
-  const buttons = document.querySelectorAll('.option-btn');
-  buttons.forEach(b => b.disabled = true);
-  if (btn) btn.classList.add('selected');
-  
-  if (!isMultiplayer) {
-    clearInterval(timerInterval);
-    showRoundResults(currentQuestions[currentIndex].answer);
-    return;
-  }
-  
-  document.getElementById('waiting-msg').innerText = "Waiting for other players...";
-  document.getElementById('waiting-msg').style.display = 'block';
-  
-  if (isHost) { hostAnswer = selected; checkAllAnswered(); } 
-  else { conn.send({ type: 'ANSWER_SUBMITTED', answer: selected }); }
-}
-
-function checkAllAnswered() {
-  if (!isHost) return; 
-  let allDone = (hostAnswer !== null);
-  Object.values(players).forEach(p => { if (p.answer === null) allDone = false; });
-
-  if (allDone) {
-    clearInterval(timerInterval); 
-    const correctAnswer = currentQuestions[currentIndex].answer;
-    broadcast({ type: 'ROUND_RESULTS', correctAnswer: correctAnswer });
-    showRoundResults(correctAnswer); 
-  }
-}
-
-function showRoundResults(correctAnswer) {
-  powerupsUsedThisRound = 0; 
-
-  if (timerInterval) clearInterval(timerInterval); 
-  document.getElementById('waiting-msg').style.display = 'none';
-  
-  if (myAnswer === correctAnswer) {
-      let earned = 100;
-      if (useTimer) earned = 60 + Math.floor((myLockedTime / (baseTimerDuration * 1000)) * 40);
-      
-      if (buffs.doublePoints) { earned *= 2; buffs.doublePoints = false; showToast("Double Points!", "good"); }
-      if (buffs.zeroPoints) { earned = 0; buffs.zeroPoints = false; showToast("Silenced! 0 points.", "bad"); }
-      
-      myScore += earned;
-      myCorrectAnswers++;
-  }
-  updateStats();
-  
-  const buttons = document.querySelectorAll('.option-btn');
-  buttons.forEach(b => {
-    if (b.innerText === correctAnswer) b.classList.add('correct-ans');
-    else if (b.classList.contains('selected') && b.innerText !== correctAnswer) b.classList.add('wrong-ans');
-  });
-
-  if (!isHost && isMultiplayer) conn.send({ type: 'SCORE_SYNC', score: myScore });
-  else if (isHost) setTimeout(renderDynamicLeaderboard, 500);
-  
-  setTimeout(() => {
-      if (!isMultiplayer) {
-          closeLeaderboardAndNext();
-      } else {
-          document.getElementById('lb-timer').innerText = "5";
-          document.getElementById('leaderboard-modal').style.display = 'flex';
-          
-          if (isHost) {
-              let countdown = 5;
-              if (roundTimerInterval) clearInterval(roundTimerInterval);
-              roundTimerInterval = setInterval(() => {
-                countdown--;
-                document.getElementById('lb-timer').innerText = countdown;
-                if (countdown <= 0) {
-                  clearInterval(roundTimerInterval);
-                  broadcast({ type: 'NEXT_QUESTION' });
-                  closeLeaderboardAndNext();
-                }
-              }, 1000);
-          } else {
-              let countdown = 5;
-              if (roundTimerInterval) clearInterval(roundTimerInterval);
-              roundTimerInterval = setInterval(() => {
-                countdown--;
-                document.getElementById('lb-timer').innerText = countdown;
-                if (countdown <= 0) clearInterval(roundTimerInterval);
-              }, 1000);
-          }
-      }
-  }, 2000);
-}
-
-function renderDynamicLeaderboard() {
-  if (!isHost) return;
-  let lb = [];
-  lb.push({ id: 'HOST', name: myName, score: myScore });
-  Object.keys(players).forEach(id => { lb.push({ id: id, name: players[id].name, score: players[id].score }); });
-  lb.sort((a,b) => b.score - a.score);
-  
-  currentLeader = lb[0].name;
-  renderLBHTML(lb);
-  broadcast({ type: 'LB_SYNC', lb: lb, leader: currentLeader });
-}
-
-function renderLBHTML(leaderboard) {
-  const listContainer = document.getElementById('lb-list-container');
-  let html = '';
-  leaderboard.forEach((player, index) => {
-    let isMe = false;
-    if (isHost && player.id === 'HOST') isMe = true;
-    if (!isHost && player.name === myName) isMe = true; 
-    html += `<div class="lb-row ${isMe ? 'me' : ''}"><span>${index + 1}. ${player.name}</span><span>${player.score}</span></div>`;
-  });
-  listContainer.innerHTML = html;
-}
-
-function closeLeaderboardAndNext() {
-  document.getElementById('leaderboard-modal').style.display = 'none';
-  currentIndex++;
-  loadQuestion();
-}
-
-function updateStats() {
-  if (!isMultiplayer) {
-      let answered = (myAnswer !== null) ? currentIndex + 1 : currentIndex;
-      document.getElementById('chip-score').innerText = `Correct: ${myCorrectAnswers} / ${answered}`;
-  } else {
-      document.getElementById('chip-score').innerText = `Score: ${myScore}`;
-  }
-  
-  if (isMultiplayer) document.getElementById('chip-players-connected').innerText = `Players: ${isHost ? Object.keys(players).length + 1 : 'Multi'}`;
-  document.getElementById('chip-remaining').innerText = `Q: ${Math.min(currentIndex + 1, currentQuestions.length)} / ${currentQuestions.length}`;
-}
-
-function endGame() {
-  showScreen('screen-results');
-  if (isMultiplayer) {
-    const finalLbContainer = document.getElementById('final-lb-container');
-    finalLbContainer.innerHTML = document.getElementById('lb-list-container').innerHTML;
-    const topRow = finalLbContainer.firstElementChild;
-    const isWinner = topRow && topRow.classList.contains('me');
-    document.getElementById('final-outcome').innerText = isWinner ? "Victory!" : "Defeat!";
-    document.getElementById('final-outcome').style.color = isWinner ? "var(--correct)" : "var(--wrong)";
-  } else {
-    document.getElementById('final-outcome').innerText = "Complete!";
-    document.getElementById('final-lb-container').innerHTML = `<div class="lb-row" style="justify-content:center; font-size:1.5rem;">Final Score: ${myCorrectAnswers} / ${currentQuestions.length} Correct</div>`;
-  }
-}
-</script>
 </body>
 </html>

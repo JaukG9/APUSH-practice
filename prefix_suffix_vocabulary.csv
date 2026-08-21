@@ -1,0 +1,63 @@
+affix,type,meaning,notes
+ante,prefix,before,
+ab,prefix,from; away,
+ad,prefix,to; toward,
+anti,prefix,against,
+auto,prefix,self,
+be,prefix,thoroughly; make,
+circum,prefix,around,
+com,prefix,with; together,
+contra,prefix,against,
+de,prefix,down; from; away; off,
+di,prefix,away; apart; not,Grouped in source with dif/dis(L)
+dif,prefix,away; apart; not,Grouped in source with di/dis(L)
+dis,prefix,away; apart; not,(L) in source; grouped with di/dif
+ex,prefix,out of; from,
+extra,prefix,outside; beyond,
+fore,prefix,before,
+hetero,prefix,other,
+homo,prefix,same,(G) in source
+hyper,prefix,over; beyond; above,
+hypo,prefix,under; beneath,(G) in source
+in,prefix,in; within; not,(L) in source
+inter,prefix,between,
+intra,prefix,within; inside,Source groups intra and intro together
+intro,prefix,within; inside,Source groups intra and intro together
+macro,prefix,long; large,
+mal,prefix,bad; evil; wrong,
+be,prefix,good; well,"Source lists 'be, bon'; duplicate be preserved exactly"
+bon,prefix,good; well,
+meta,prefix,after; beyond; over,
+micro,prefix,small,
+mis,prefix,wrong; bad,
+multi,prefix,many,
+non,prefix,not,
+orth,prefix,straight,
+post,prefix,after,
+pre,prefix,before,
+pro,prefix,before; forward; forth,
+proto,prefix,first,
+re,prefix,back; again,
+retro,prefix,backward; back,
+se,prefix,aside; away; apart,
+semi,prefix,half,
+sub,prefix,under; beneath,(L) in source
+super,prefix,above; over; beyond,
+tele,prefix,far,
+trans,prefix,across,
+ultra,prefix,beyond; excessive,
+-able,suffix,able to be,
+-ible,suffix,able to be,Source groups -able and -ible together
+-eer,suffix,one who,
+-fic,suffix,making; causing,Source groups -fic and -fy together
+-fy,suffix,making; causing,Source groups -fic and -fy together
+-ful,suffix,full of,
+-hood,suffix,state; quality of,
+-ine,suffix,like; related to,
+-ious,suffix,characterized by; full of,
+-ish,suffix,like,
+-ism,suffix,state; quality of,
+-ity,suffix,state; quality,
+-less,suffix,without,
+-ous,suffix,having quality of,
+-tude,suffix,state; quality of,
