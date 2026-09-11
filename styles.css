@@ -100,6 +100,7 @@ code {
 .app-screen { display: none; }
 .app-screen.active { display: block; animation: fadeIn var(--speed) ease-out; }
 .hidden { display: none !important; }
+[hidden] { display: none !important; }
 .stack > * + * { margin-top: var(--sp-3); }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -251,32 +252,120 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--navy); }
 
 /* --- Multiplayer lobby ------------------------------------------------- */
 
+.net-status {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9998;
+  padding: var(--sp-2) var(--sp-4);
+  text-align: center;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--sepia-dk);
+}
+.net-status[data-kind="reconnecting"] { background: var(--rust); }
+.net-status[data-kind="online"]       { background: var(--correct); }
+
+.lobby-code { text-align: center; margin-bottom: var(--sp-5); }
+.lobby-code .field-label { display: block; text-align: center; }
 .room-code-display {
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-size: clamp(2.25rem, 9vw, 3.5rem);
   font-weight: 600;
   color: var(--rust);
   letter-spacing: 0.15em;
-  margin: var(--sp-4) 0;
+  margin: var(--sp-2) 0 var(--sp-3);
+  word-break: break-all;
 }
+.lobby-code-actions { display: flex; gap: var(--sp-2); justify-content: center; flex-wrap: wrap; }
+
+.chip-btn {
+  width: auto;
+  margin-top: 0;
+  padding: var(--sp-2) var(--sp-4);
+  font-size: 0.8rem;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  background: var(--aged);
+  border: 1px solid var(--sepia);
+  border-radius: 999px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background var(--speed), color var(--speed);
+}
+.chip-btn:hover:not(:disabled) { background: var(--navy); color: #fff; }
+.chip-btn:disabled { opacity: 0.55; cursor: default; }
+
 .status-text { font-size: 1.05rem; margin: var(--sp-4) 0; font-weight: 600; color: var(--navy); }
 
-.player-roster {
-  margin: var(--sp-4) 0;
+.roster-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  text-align: left;
+}
+.roster-head h4 { margin: 0; color: var(--rust); }
+
+.player-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-5);
+  text-align: left;
+}
+.player-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--sepia);
+  border-left: 3px solid var(--sepia);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  min-width: 0;
+}
+.player-card.is-me   { border-left-color: var(--navy); background: #fff; }
+.player-card.is-host { border-left-color: var(--correct); }
+.player-card.is-gone { opacity: 0.5; border-left-color: var(--wrong); }
+.player-card .who { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-card .tag {
+  margin-left: auto;
+  flex: none;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.player-card .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--correct); }
+.player-card.is-gone .dot { background: var(--wrong); }
+.player-grid .roster-empty {
+  grid-column: 1 / -1;
   padding: var(--sp-4);
-  background: rgba(255, 255, 255, 0.65);
+  border: 1px dashed var(--sepia);
+  border-radius: var(--radius);
+  color: var(--ink-soft);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.settings-readout {
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  background: rgba(255, 255, 255, 0.6);
   border: 1px dashed var(--sepia);
   border-radius: var(--radius);
   text-align: left;
-  max-height: 220px;
-  overflow-y: auto;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-size: 0.9rem;
 }
-.roster-item { padding: var(--sp-2) 0; border-bottom: 1px solid rgba(0, 0, 0, 0.08); }
-.roster-item:last-child { border-bottom: 0; }
-.roster-item.is-host { color: var(--correct); font-weight: 600; }
-.roster-item.is-me { font-weight: 600; }
+.settings-readout dl { display: grid; grid-template-columns: auto 1fr; gap: var(--sp-1) var(--sp-4); }
+.settings-readout dt { color: var(--ink-soft); }
+.settings-readout dd { font-weight: 600; }
 
 hr.rule { border: 0; border-top: 1px solid var(--sepia); margin: var(--sp-5) 0; }
 
@@ -346,6 +435,47 @@ hr.rule { border: 0; border-top: 1px solid var(--sepia); margin: var(--sp-5) 0; 
 .chip.streak { background: var(--rust); color: #fff; }
 .chip.streak[data-cold="true"] { background: var(--aged); color: var(--ink-soft); }
 .chip.players { background: var(--sepia); color: #fff; }
+.chip.rank { background: var(--forest); color: #fff; }
+
+/* Who has locked in, updated live. Far more useful mid-round than the blank
+   "waiting for other players" box this replaced. */
+.answer-tracker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-3);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px dashed var(--sepia);
+  border-radius: var(--radius);
+}
+.answer-tracker .tracker-label {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-right: var(--sp-1);
+}
+.tracker-pip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--sepia);
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 0.78rem;
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background var(--speed), color var(--speed), border-color var(--speed);
+}
+.tracker-pip.done { background: var(--forest); border-color: var(--forest); color: #fff; }
+.tracker-pip.gone { opacity: 0.45; text-decoration: line-through; }
+.tracker-pip.watching { font-style: italic; opacity: 0.7; }
 
 .unit-badge {
   display: inline-block;
@@ -488,6 +618,27 @@ hr.rule { border: 0; border-top: 1px solid var(--sepia); margin: var(--sp-5) 0; 
 }
 .lb-row:last-child { border-bottom: 0; }
 .lb-row.me { background: var(--aged); font-weight: 600; }
+.lb-row.gone { opacity: 0.5; }
+.lb-row .lb-who { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.lb-row .lb-place { flex: none; width: 1.6rem; color: var(--ink-soft); }
+.lb-row .lb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-row .lb-mark { flex: none; font-weight: 700; }
+.lb-row .lb-mark.hit  { color: var(--correct); }
+.lb-row .lb-mark.miss { color: var(--wrong); }
+.lb-row .lb-tally { flex: none; display: flex; align-items: baseline; gap: var(--sp-3); }
+.lb-row .lb-delta { font-size: 0.8rem; color: var(--correct); }
+.lb-row .lb-delta.zero { color: var(--ink-soft); }
+
+.lb-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-4);
+}
+.lb-next { color: var(--rust); font-weight: 600; margin: 0; }
+.shop-budget { font-size: 0.8rem; font-weight: 400; color: var(--ink-soft); }
 
 .shop-container { width: 100%; max-width: 620px; border-top: 2px solid var(--sepia); padding-top: var(--sp-4); margin-top: var(--sp-2); }
 .shop-container h4 { margin-bottom: var(--sp-3); color: var(--navy); }
@@ -496,6 +647,39 @@ hr.rule { border: 0; border-top: 1px solid var(--sepia); margin: var(--sp-5) 0; 
 .shop-item strong { display: block; font-size: 0.85rem; margin-bottom: var(--sp-1); }
 .shop-item .cost { color: var(--rust); font-weight: 600; }
 .shop-item:hover:not(:disabled) .cost { color: #fff; }
+.shop-item:disabled { opacity: 0.45; }
+
+/* --- Final standings --------------------------------------------------- */
+
+.final-standings {
+  margin: var(--sp-5) 0;
+  border: 1px solid var(--sepia);
+  border-radius: var(--radius);
+  background: #fff;
+  overflow: hidden;
+  text-align: left;
+}
+.standing {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--aged);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
+.standing:last-child { border-bottom: 0; }
+.standing.me { background: var(--aged); }
+.standing .place {
+  flex: none;
+  width: 2.25rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.3rem;
+  color: var(--sepia-dk);
+}
+.standing.first .place { color: var(--rust); }
+.standing .name { flex: 1 1 auto; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.standing .detail { flex: none; font-size: 0.78rem; color: var(--ink-soft); }
+.standing .points { flex: none; font-weight: 600; color: var(--navy); min-width: 4rem; text-align: right; }
 
 /* --- Results ----------------------------------------------------------- */
 
@@ -582,6 +766,10 @@ hr.rule { border: 0; border-top: 1px solid var(--sepia); margin: var(--sp-5) 0; 
   .option-btn { padding: var(--sp-3); font-size: 0.95rem; }
   .filter-grid { grid-template-columns: repeat(2, 1fr); }
   .shop-grid { grid-template-columns: repeat(2, 1fr); }
+  .player-grid { grid-template-columns: 1fr 1fr; }
+  .answer-tracker { padding: var(--sp-2); gap: var(--sp-1); }
+  .tracker-pip { font-size: 0.72rem; max-width: 7rem; }
+  .standing .detail { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

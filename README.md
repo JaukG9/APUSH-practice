@@ -9,13 +9,17 @@ multiplayer match. No build step and no dependencies — open `practice.html`.
 | --- | --- | --- |
 | APUSH | 232 questions | Period 1–9 |
 | AP Gov | 257 questions | The nine required foundational documents |
-| AP Gov: Interactions Among Branches | 129 questions over 95 key terms | Institution and difficulty |
+| AP Gov: 2.3-2.8 | 98 questions over 56 key terms | Institution and difficulty |
 | Prefix & Suffix Practice | 115 questions over 62 affixes | Difficulty and prefix/suffix focus |
 
 **Single player** runs at your own pace: answer, read the feedback, continue.
-**Multiplayer** is peer-to-peer over WebRTC — one player hosts and shares a
-four-letter room code, and everyone answers the same question each round with a
-shop of powerups between rounds.
+
+**Multiplayer** is peer-to-peer over WebRTC — no server, no accounts. One
+player hosts and shares a five-character room code or an invite link; everyone
+answers the same question each round, sees who has locked in, and gets a
+standings board and a powerup shop between rounds. Players can join a match
+already in progress, and a dropped connection reconnects into the same seat
+with its score intact.
 
 Scoring is shared across all four subjects. With the timer on, a correct answer
 is worth 60–100 points depending on speed; with it off, every correct answer is
@@ -27,16 +31,74 @@ subject is remembered locally.
 ```
 practice.html          markup and screens
 styles.css             all styling
-app.js                 the game engine: selection, timing, scoring, multiplayer
+app.js                 screens, solo play, and the multiplayer client
+match.js               the authoritative match rules: phases, scoring, powerups
+net.js                 transport: room codes, heartbeats, clock sync, reconnects
 questions.js           APUSH + AP Gov banks
-gov-branches-data.js   AP Gov Unit 2 key terms and question bank
+gov-branches-data.js   AP Gov 2.3-2.8 key terms and question bank
 affix-data.js          prefix/suffix vocabulary and question bank
 prefix_suffix_vocabulary.csv   source of truth for the affix vocabulary
 tools/validate-content.js      content checker
+tools/test-match.js            match rule tests
 ```
 
 Content and engine stay separate: no question text lives in `app.js`, and no
-game logic lives in the banks.
+game logic lives in the banks. `match.js` and `net.js` keep that going — rules
+with no DOM, transport with no rules.
+
+The `<script>` and `<link>` tags carry a `?v=` stamp. There is no build step,
+so bump it whenever markup, styling and scripts change together, or a browser
+holding one of them from cache will mix old and new.
+
+## How multiplayer works
+
+The host is the only authority. It runs a `Match` from `match.js` and is the
+single place scores, phase changes and powerups are decided. Everyone —
+including the host — then draws from the snapshots it publishes:
+
+```
+client --{answer | buy}--> host --> Match --> {sync | event} --> every client
+```
+
+That shape is what keeps four browsers agreeing. A few consequences worth
+knowing:
+
+- **Nobody scores themselves.** A client reports which option it picked and how
+  much time its own clock showed; the host caps that against what it actually
+  observed and works out the points. Two players cannot drift apart.
+- **The answer key is withheld.** A question snapshot carries the options but
+  not the answer or the explanation; both appear only once the round is
+  revealed. Powerups that grey out wrong options are resolved host-side for the
+  same reason.
+- **Deadlines are absolute and clock-corrected.** The host stamps a deadline in
+  its own time; clients estimate the offset from ping round trips (keeping the
+  lowest-latency sample) and re-sync on every snapshot, so a slow link loses
+  latency rather than accumulating drift.
+- **Nothing waits forever.** A round ends when every connected player has
+  answered or the deadline passes. A player who disconnects is dropped from the
+  count within a few seconds, and one who joins mid-question sits that round out
+  instead of holding it open.
+- **Identity survives a reconnect.** Players are keyed by a per-tab id, not by
+  the WebRTC peer id, which changes on every reconnect. Coming back restores the
+  same seat and score. Two tabs of one browser count as two players, which is
+  the easiest way to try a match on your own.
+
+`net.js` handles the wire: namespaced room codes on the public PeerJS broker,
+heartbeats, reconnection with backoff, and a TURN relay fallback — without one,
+a fair share of networks (school Wi-Fi especially) cannot establish a peer
+connection at all. To use your own relay instead of the public one, replace the
+credentials in `ICE_SERVERS` at the top of that file.
+
+The rules are testable because they have no DOM and no network, and take the
+clock as an argument:
+
+```bash
+node tools/test-match.js
+```
+
+That covers scoring and speed bonuses, timeouts, mid-match joins, disconnects
+and reconnects, every powerup, the purchase cap, and the guarantee that a
+question snapshot never contains its own answer.
 
 ## Adding questions
 
@@ -48,17 +110,17 @@ runtime.
 [3, "Question text?", "Correct answer", "Wrong 1", "Wrong 2", "Wrong 3"]
 ```
 
-**AP Gov: Interactions Among Branches** — append an object to `govBranchesBank`
+**AP Gov: 2.3-2.8** — append an object to `govBranchesBank`
 in `gov-branches-data.js`.
 
 ```js
 {
-  id: "gb130", term: "filibuster", branch: "congress", topic: "2.2",
-  questionType: "definition", difficulty: "easy",
-  question: "Which of the following best describes a filibuster?",
-  options: ["A senator holding the floor at length ...", "...", "...", "..."],
-  answer: "A senator holding the floor at length ...",
-  explanation: "The filibuster is a Senate procedure, not a constitutional power ..."
+  id: "gb143", term: "gridlock", branch: "congress", topic: "2.3",
+  questionType: "definition", difficulty: "medium",
+  question: "As the AMSCO text uses the term, gridlock refers to ...",
+  options: ["opposing forces congesting the process ...", "...", "...", "..."],
+  answer: "opposing forces congesting the process ...",
+  explanation: "Gridlock describes the jam itself rather than any single rule ..."
 }
 ```
 
@@ -74,8 +136,13 @@ in `gov-branches-data.js`.
   compare several terms), and `topic` is the AMSCO topic number.
 
 `govBranchesVocab` is the key-term list, taken from AMSCO *United States
-Government & Politics, AP Edition* (2022), pages 108–187 — Topics 2.1 through
-2.8. Edit that list first if the source changes.
+Government & Politics, AP Edition* (2022), pages 124–187 — Topic 2.3
+(congressional behavior) through Topic 2.8 (the judiciary). Edit that list
+first if the source changes.
+
+Question ids are not contiguous. They are identity keys, and the gaps are where
+Topics 2.1 and 2.2 used to sit; reusing a number would collide with the
+recently-seen list a returning player already has stored, so keep counting up.
 
 **Prefix & Suffix** — append an object to `affixBank` in `affix-data.js`.
 
@@ -103,6 +170,8 @@ After editing any bank:
 ```bash
 node tools/validate-content.js
 ```
+
+(and after touching `match.js`, `node tools/test-match.js`.)
 
 It checks that every question has exactly four distinct options, that the answer
 is among them, that ids and question stems are unique, and that every affix or

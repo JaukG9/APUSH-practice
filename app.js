@@ -6,7 +6,7 @@
    shared - selection, timing, scoring, feedback, results and multiplayer.
 
    Question banks live in questions.js (APUSH / AP Gov), gov-branches-data.js
-   (AP Gov Unit 2) and affix-data.js (Prefix & Suffix). No question text
+   (AP Gov 2.3-2.8) and affix-data.js (Prefix & Suffix). No question text
    appears in this file.
    ========================================================================= */
 
@@ -18,20 +18,11 @@
   // CONFIG
   // =======================================================================
 
-  const POWERUP_COSTS = {
-    ELIM2: 50, AUTOCORRECT: 150, DOUBLE: 50, BLOCK: 100,
-    GAMBLE: 75, NUKE: 150, STEAL: 150, ZERO: 200
-  };
-
-  const POWERUP_DESCRIPTIONS = {
-    ELIM2: 'Elim. 2 Wrong', AUTOCORRECT: 'Auto-Correct', DOUBLE: 'Double Points',
-    BLOCK: 'Block 1 Attack', GAMBLE: 'Win 200 / Lose 100', NUKE: 'Nuke 1st Place',
-    STEAL: 'Steal 100 Pts', ZERO: 'Opponent gets 0'
-  };
-
-  const POWERUP_ORDER = ['ELIM2', 'AUTOCORRECT', 'DOUBLE', 'BLOCK', 'GAMBLE', 'NUKE', 'STEAL', 'ZERO'];
-  const MAX_POWERUPS_PER_ROUND = 3;
-  const ROUND_BREAK_SECONDS = 5;
+  // The powerup economy is defined in match.js, because the host has to be
+  // able to enforce it; this file only needs the names and the ordering.
+  const POWERUP_ORDER = Match.POWERUP_ORDER;
+  const MAX_POWERUPS_PER_ROUND = Match.MAX_BUYS_PER_ROUND;
+  const REVEAL_SECONDS = Math.round(Match.REVEAL_MS / 1000);
 
   // How a session is described back to the player after answering.
   const CATEGORY_LABELS = { prefix: 'Prefix', suffix: 'Suffix', mixed: 'Mixed Review' };
@@ -77,7 +68,7 @@
   ];
 
   const GOV_BRANCHES = [
-    ['congress', 'Congress', 'Topics 2.1-2.3: how the House and Senate are built, and how they behave'],
+    ['congress', 'Congress', 'Topic 2.3: partisanship, voting models, redistricting and gerrymandering'],
     ['presidency', 'The Presidency', 'Topics 2.4-2.7: presidential powers, the checks on them, and communication'],
     ['judiciary', 'The Judiciary', 'Topic 2.8: the federal courts, Federalist No. 78, and judicial review'],
     ['mixed', 'Cross-Branch', 'Items that turn on how two or three institutions check each other']
@@ -177,8 +168,8 @@
     },
 
     APGOV_BRANCHES: {
-      title: 'AP Gov: Branches',
-      blurb: 'Unit 2 - Congress, the presidency and the courts, and how they check each other.',
+      title: 'AP Gov: 2.3-2.8',
+      blurb: 'Congressional behavior, the presidency and the courts, and how they check each other.',
       format: 'tagged',
       unitLabel: 'Institution',
       getBank: () => (typeof govBranchesBank === 'undefined' ? null : govBranchesBank),
@@ -192,11 +183,11 @@
         { text: BRANCH_LABELS[q.branch] || q.branch },
         { text: 'Topic ' + q.topic }
       ],
-      howToPlayNote: 'This unit is about how the three branches actually work on each other: what Congress can do to a bill, what a president can do without Congress, and what a court can undo. Questions get harder as a session goes on, and many ask you to recognize a concept in a real situation rather than define it.',
+      howToPlayNote: 'These topics are about how the three branches actually work on each other: how congressional behavior is shaped by elections and partisanship, what a president can do without Congress, and what a court can undo. Questions get harder as a session goes on, and many ask you to recognize a concept in a real situation rather than define it.',
       brief: [
-        'Every question is multiple choice with one clearly best answer, drawn from AMSCO Topics 2.1 through 2.8.',
+        'Every question is multiple choice with one clearly best answer, drawn from AMSCO Topics 2.3 through 2.8.',
         'Pick the institutions you want to study and how hard you want the questions. Cross-Branch items ask you to compare two or three institutions at once.',
-        'Distractors are usually real terms from the same unit, so read carefully: a rider is not pork, and a hold is not a filibuster. The feedback after each question explains why.'
+        'Distractors are usually real terms from the same unit, so read carefully: a delegate is not a trustee, and an executive order is not an executive agreement. The feedback after each question explains why.'
       ],
       filterGroups: [
         {
@@ -259,28 +250,25 @@
 
     lastSettings: null,  // reused by "Play Again" so a rematch keeps your choices
 
-    buffs: { doublePoints: false, blockAttacks: 0, elim2: false, autocorrect: false, zeroPoints: false },
+    total: 0,            // questions in this session; a guest learns it from the host
+    timerTotal: 0,
+    onTimerExpired: null,
+    boardTimer: null,
 
-    // multiplayer
+    // multiplayer. The host additionally owns `match`; everyone renders from
+    // `snap`, and `shownRound` / `shownPhase` are what the screen currently
+    // shows, so a repeated snapshot does not redraw the question underneath a
+    // player who is mid-answer.
     isMultiplayer: false,
     isHost: false,
-    peer: null,
-    conn: null,
-    players: {},
-    playerCount: 1,
-    hostAnswer: null,
-    hostHasAnswered: false,
-    currentLeader: null,
-    powerupsUsedThisRound: 0
-  };
-
-  const PEER_CONFIG = {
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
-    }
+    net: null,
+    match: null,
+    myId: null,
+    snap: null,
+    shownRound: -1,
+    shownPhase: null,
+    hostTicker: null,
+    roomCode: null
   };
 
   // =======================================================================
@@ -399,7 +387,9 @@
 
     const shop = el('p');
     shop.appendChild(el('strong', null, 'The Shop (multiplayer only): '));
-    shop.appendChild(document.createTextNode('Between rounds you have ' + ROUND_BREAK_SECONDS + ' seconds to spend points on powerups.'));
+    shop.appendChild(document.createTextNode(
+      'After each question you get about ' + REVEAL_SECONDS +
+      ' seconds to read the explanation, check the standings and spend points. The host can skip ahead.'));
     body.appendChild(shop);
 
     const list = el('ul');
@@ -407,7 +397,7 @@
       const item = el('li');
       item.appendChild(el('span', 'powerup-name', config.powerups[key]));
       item.appendChild(document.createTextNode(
-        ' (Cost: ' + POWERUP_COSTS[key] + ') - ' + POWERUP_DESCRIPTIONS[key] + '.'
+        ' (Cost: ' + Match.POWERUPS[key].cost + ') - ' + Match.POWERUPS[key].blurb + '.'
       ));
       list.appendChild(item);
     });
@@ -690,57 +680,123 @@
     state.useTimer = settings.useTimer;
     state.timerSeconds = settings.seconds;
     state.lastSettings = settings;
-    startGame();
+    startSoloGame();
   }
 
   // =======================================================================
-  // GAME FLOW
+  // GAME FLOW - SINGLE PLAYER
   // =======================================================================
+  //
+  // Solo keeps its own tally because there is nobody to disagree with. A
+  // multiplayer round is decided by the host instead, further down.
 
-  function startGame() {
+  function startSoloGame() {
+    state.isMultiplayer = false;
+    state.isHost = false;
     state.index = 0;
+    state.total = state.questions.length;
     state.score = 0;
     state.correctCount = 0;
     state.answeredCount = 0;
     state.streak = 0;
     state.bestStreak = 0;
     state.misses = [];
-    state.hostAnswer = null;
-    state.hostHasAnswered = false;
-    state.buffs = { doublePoints: false, blockAttacks: 0, elim2: false, autocorrect: false, zeroPoints: false };
-    state.powerupsUsedThisRound = 0;
 
-    $('chip-players-connected').classList.toggle('hidden', !state.isMultiplayer);
-    $('shop-container').style.display = state.isMultiplayer ? 'block' : 'none';
-    if (state.isMultiplayer) renderShop();
+    document.body.dataset.mode = 'solo';
+    $('chip-players-connected').classList.add('hidden');
+    $('chip-rank').classList.add('hidden');
+    $('answer-tracker').classList.add('hidden');
+    $('shop-container').style.display = 'none';
     $('timer-wrapper').style.display = state.useTimer ? 'block' : 'none';
-    $('keyboard-hint').textContent = state.isMultiplayer
-      ? 'Keyboard: press 1-4 to answer.'
-      : 'Keyboard: press 1-4 to answer, Enter to continue.';
-    closeLeaderboard();
+    $('keyboard-hint').textContent = 'Keyboard: press 1-4 to answer, Enter to continue.';
+    closeBoard();
 
     showScreen('screen-quiz');
-    loadQuestion();
+    loadSoloQuestion();
   }
 
-  function loadQuestion() {
-    if (state.index >= state.questions.length) return endGame();
+  function loadSoloQuestion() {
+    if (state.index >= state.questions.length) return endSoloGame();
 
     state.answered = false;
     state.myAnswer = null;
-    state.lockedTime = 0;
     state.roundResolved = false;
-    if (state.isHost) {
-      state.hostAnswer = null;
-      state.hostHasAnswered = false;
-      Object.keys(state.players).forEach((id) => {
-        state.players[id].answer = null;
-        state.players[id].hasAnswered = false;
-      });
-    }
+
+    renderQuestion(state.questions[state.index], { onPick: soloPick });
+    updateStats();
+    startTimer(state.timerSeconds * 1000, state.timerSeconds * 1000, soloTimeout);
+  }
+
+  function soloPick(option, btn) {
+    if (state.answered) return;
+    state.answered = true;
+    state.myAnswer = option;
+    state.lockedTime = remainingTime();
+    stopTimer();
+    lockOptions();
+    if (btn) btn.classList.add('selected');
+    resolveSoloRound();
+  }
+
+  function soloTimeout() {
+    if (state.answered) return;
+    state.answered = true;
+    state.myAnswer = null;
+    state.lockedTime = 0;
+    lockOptions();
+    resolveSoloRound();
+  }
+
+  function resolveSoloRound() {
+    if (state.roundResolved) return;
+    state.roundResolved = true;
+    stopTimer();
 
     const question = state.questions[state.index];
+    const correctAnswer = question.answer;
+    const wasCorrect = state.myAnswer === correctAnswer;
+    const timedOut = state.myAnswer === null;
 
+    state.answeredCount++;
+    if (wasCorrect) {
+      let earned = 100;
+      if (state.useTimer) earned = 60 + Math.floor((state.lockedTime / (state.timerSeconds * 1000)) * 40);
+      state.score += earned;
+      state.correctCount++;
+      state.streak++;
+      if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+    } else {
+      state.streak = 0;
+      recordMiss(question.question, correctAnswer, timedOut ? null : state.myAnswer, question.explanation);
+    }
+
+    paintAnswers(correctAnswer);
+    showFeedback(question.question, question.explanation, correctAnswer, wasCorrect, timedOut);
+    updateStats();
+
+    const next = $('btn-next');
+    next.textContent = state.index + 1 >= state.questions.length ? 'See Results' : 'Next Question';
+    next.classList.remove('hidden');
+    next.focus();
+  }
+
+  function nextSoloQuestion() {
+    state.index++;
+    loadSoloQuestion();
+  }
+
+  // =======================================================================
+  // SHARED QUIZ RENDERING
+  // =======================================================================
+
+  /**
+   * Paints one question. Both modes come through here; what differs is who
+   * owns the answer key - this tab in solo, the host in a match - and so who
+   * decides what a click means. `eliminate` arrives from the host in a match,
+   * because a client able to work out which options are wrong would also know
+   * which one is right.
+   */
+  function renderQuestion(question, opts) {
     $('waiting-msg').classList.add('hidden');
     $('feedback-panel').classList.add('hidden');
     $('btn-next').classList.add('hidden');
@@ -757,36 +813,31 @@
     grid.textContent = '';
     grid.classList.remove('locked');
 
-    const buttons = question.options.map((option, i) => {
+    const eliminated = opts.eliminate || [];
+    question.options.forEach((option, i) => {
       const btn = el('button', 'option-btn');
       btn.type = 'button';
       btn.dataset.value = option;
       btn.appendChild(el('span', 'key', String.fromCharCode(65 + i)));
       btn.appendChild(renderText(el('span', 'label'), option));
-      btn.addEventListener('click', () => handleAnswer(option, btn));
+      if (eliminated.indexOf(i) !== -1) btn.classList.add('eliminated');
+      btn.addEventListener('click', () => opts.onPick(option, btn));
       grid.appendChild(btn);
-      return btn;
     });
 
-    applyBuffs(buttons, question.answer);
-    updateStats();
-    startTimer();
+    if (opts.locked) lockOptions(opts.chosen);
   }
 
-  function applyBuffs(buttons, correctAnswer) {
-    const wrong = shuffle(buttons.filter((b) => b.dataset.value !== correctAnswer));
-    if (state.buffs.autocorrect) {
-      state.buffs.autocorrect = false;
-      wrong.forEach((b) => b.classList.add('eliminated'));
-    } else if (state.buffs.elim2) {
-      state.buffs.elim2 = false;
-      wrong.slice(0, 2).forEach((b) => b.classList.add('eliminated'));
-    }
+  /** Freezes the options, optionally re-marking what this player picked. */
+  function lockOptions(chosen) {
+    const grid = $('options-grid');
+    grid.classList.add('locked');
+    grid.querySelectorAll('.option-btn').forEach((b) => {
+      b.disabled = true;
+      if (chosen != null && b.dataset.value === chosen) b.classList.add('selected');
+    });
   }
 
-  // --- timer -------------------------------------------------------------
-
-  /** Milliseconds left, read from the clock rather than from the last frame. */
   function remainingTime() {
     if (!state.useTimer) return 0;
     return Math.max(0, state.timerEndsAt - performance.now());
@@ -796,6 +847,7 @@
     if (state.rafId !== null) { cancelAnimationFrame(state.rafId); state.rafId = null; }
     clearTimeout(state.expiryTimeout);
     state.expiryTimeout = null;
+    state.onTimerExpired = null;
   }
 
   /**
@@ -803,128 +855,54 @@
    * the tab is in the background; requestAnimationFrame only paints the bar,
    * and browsers stop calling it on hidden tabs. Elapsed time is always read
    * from performance.now(), so a backgrounded tab can never gain extra time.
+   *
+   * `remaining` is separate from `total` so a match client can start the bar
+   * partway down: the deadline belongs to the host, and someone who joined
+   * late or reconnected mid-question picks the clock up wherever it already is.
    */
-  function startTimer() {
+  function startTimer(total, remaining, onExpire) {
     stopTimer();
-    if (!state.useTimer) return;
+    if (!state.useTimer || total <= 0) return;
 
-    const total = state.timerSeconds * 1000;
+    state.timerTotal = total;
+    state.onTimerExpired = onExpire || null;
+
     const bar = $('timer-bar');
     const text = $('timer-text');
-
-    state.timerEndsAt = performance.now() + total;
     bar.className = 'timer-fill';
-    bar.style.transform = 'scaleX(1)';
-    text.textContent = state.timerSeconds.toFixed(1) + 's';
-
-    state.expiryTimeout = setTimeout(handleTimeout, total);
+    armTimer(remaining);
 
     let lastShown = -1;
     const paint = () => {
-      const remaining = remainingTime();
-      bar.style.transform = 'scaleX(' + (remaining / total) + ')';
-
-      const tenths = Math.ceil(remaining / 100);
+      const left = remainingTime();
+      bar.style.transform = 'scaleX(' + (left / state.timerTotal) + ')';
+      const tenths = Math.ceil(left / 100);
       if (tenths !== lastShown) { text.textContent = (tenths / 10).toFixed(1) + 's'; lastShown = tenths; }
-      if (remaining <= total * 0.25) bar.classList.add('warning');
-
-      state.rafId = remaining > 0 ? requestAnimationFrame(paint) : null;
+      if (left <= state.timerTotal * 0.25) bar.classList.add('warning');
+      state.rafId = left > 0 ? requestAnimationFrame(paint) : null;
     };
     state.rafId = requestAnimationFrame(paint);
   }
 
-  function handleTimeout() {
-    if (!state.answered) handleAnswer(null, null);
-    // The single-player path already resolved inside handleAnswer; only the
-    // host still needs to close the round out for everybody else.
-    if (state.isHost) resolveRound(state.questions[state.index].answer, true);
-  }
-
-  // --- answering ---------------------------------------------------------
-
-  function handleAnswer(selected, btn) {
-    if (state.answered || state.roundResolved) return;
-
-    state.answered = true;
-    state.myAnswer = selected;
-    state.lockedTime = remainingTime();
-
-    const grid = $('options-grid');
-    grid.classList.add('locked');
-    grid.querySelectorAll('.option-btn').forEach((b) => { b.disabled = true; });
-    if (btn) btn.classList.add('selected');
-
-    if (!state.isMultiplayer) {
-      stopTimer();
-      resolveRound(state.questions[state.index].answer);
-      return;
-    }
-
-    $('waiting-msg').classList.remove('hidden');
-    if (state.isHost) { state.hostAnswer = selected; state.hostHasAnswered = true; checkAllAnswered(); }
-    else if (state.conn && state.conn.open) { state.conn.send({ type: 'ANSWER_SUBMITTED', answer: selected }); }
-  }
-
-  function checkAllAnswered() {
-    if (!state.isHost || state.roundResolved || !state.hostHasAnswered) return;
-    if (Object.values(state.players).every((p) => p.hasAnswered)) {
-      resolveRound(state.questions[state.index].answer, true);
-    }
+  function armTimer(remaining) {
+    const left = Math.max(0, remaining);
+    state.timerEndsAt = performance.now() + left;
+    clearTimeout(state.expiryTimeout);
+    state.expiryTimeout = setTimeout(() => {
+      const expired = state.onTimerExpired;
+      state.onTimerExpired = null;
+      if (expired) expired();
+    }, left);
   }
 
   /**
-   * Ends the round exactly once. Both the timer and the last submitted answer
-   * can race to get here, so the guard matters: without it the session would
-   * advance twice and silently skip a question.
+   * Nudges the bar back onto the host's deadline without restarting it. Called
+   * on every snapshot, so latency corrects itself continuously instead of
+   * accumulating over a match.
    */
-  function resolveRound(correctAnswer, broadcastToPeers) {
-    if (state.roundResolved) return;
-    state.roundResolved = true;
-    stopTimer();
-
-    if (broadcastToPeers && state.isMultiplayer) broadcast({ type: 'ROUND_RESULTS', correctAnswer: correctAnswer });
-
-    state.powerupsUsedThisRound = 0;
-    $('waiting-msg').classList.add('hidden');
-
-    const question = state.questions[state.index];
-    const wasCorrect = state.myAnswer === correctAnswer;
-    const timedOut = state.myAnswer === null;
-
-    state.answeredCount++;
-    if (wasCorrect) {
-      let earned = 100;
-      if (state.useTimer) earned = 60 + Math.floor((state.lockedTime / (state.timerSeconds * 1000)) * 40);
-      if (state.buffs.doublePoints) { earned *= 2; state.buffs.doublePoints = false; showToast('Double Points!', 'good'); }
-      if (state.buffs.zeroPoints) { earned = 0; state.buffs.zeroPoints = false; showToast('Silenced - 0 points.', 'bad'); }
-      state.score += earned;
-      state.correctCount++;
-      state.streak++;
-      if (state.streak > state.bestStreak) state.bestStreak = state.streak;
-    } else {
-      state.streak = 0;
-      state.misses.push({
-        question: question.question,
-        answer: correctAnswer,
-        chosen: timedOut ? null : state.myAnswer,
-        explanation: question.explanation
-      });
-    }
-
-    paintAnswers(correctAnswer);
-    showFeedback(question, correctAnswer, wasCorrect, timedOut);
-    updateStats();
-
-    if (state.isMultiplayer) {
-      if (state.isHost) setTimeout(renderDynamicLeaderboard, 400);
-      else if (state.conn && state.conn.open) state.conn.send({ type: 'SCORE_SYNC', score: state.score });
-      state.advanceTimeout = setTimeout(openLeaderboard, 2000);
-    } else {
-      const next = $('btn-next');
-      next.textContent = state.index + 1 >= state.questions.length ? 'See Results' : 'Next Question';
-      next.classList.remove('hidden');
-      next.focus();
-    }
+  function syncTimer(remaining) {
+    if (!state.useTimer) return;
+    if (Math.abs(remaining - remainingTime()) > 300) armTimer(remaining);
   }
 
   function paintAnswers(correctAnswer) {
@@ -936,13 +914,13 @@
     });
   }
 
-  function showFeedback(question, correctAnswer, wasCorrect, timedOut) {
+  function showFeedback(questionText, explanation, correctAnswer, wasCorrect, timedOut, verdict) {
     const panel = $('feedback-panel');
     panel.textContent = '';
     panel.className = 'feedback-panel ' + (wasCorrect ? 'correct' : 'wrong');
 
     panel.appendChild(el('span', 'feedback-verdict',
-      wasCorrect ? 'Correct' : (timedOut ? "Time's up" : 'Not quite')));
+      verdict || (wasCorrect ? 'Correct' : (timedOut ? "Time's up" : 'Not quite'))));
 
     if (!wasCorrect) {
       const line = el('p');
@@ -952,18 +930,19 @@
       line.appendChild(strong);
       panel.appendChild(line);
     }
-    if (question.explanation) renderText(panel.appendChild(el('p')), question.explanation);
+    if (explanation) renderText(panel.appendChild(el('p')), explanation);
     panel.classList.remove('hidden');
   }
 
-  function nextQuestion() {
-    clearTimeout(state.advanceTimeout);
-    closeLeaderboard();
-    state.index++;
-    loadQuestion();
+  function recordMiss(questionText, answer, chosen, explanation) {
+    state.misses.push({
+      question: questionText, answer: answer, chosen: chosen, explanation: explanation
+    });
   }
 
   function updateStats() {
+    const total = state.total || state.questions.length || 1;
+
     $('chip-score').textContent = state.isMultiplayer
       ? 'Score: ' + state.score
       : 'Correct: ' + state.correctCount + ' / ' + state.answeredCount;
@@ -972,45 +951,44 @@
     streakChip.textContent = 'Streak: ' + state.streak;
     streakChip.dataset.cold = String(state.streak === 0);
 
-    const total = state.questions.length || 1;
     const shown = Math.min(state.index + 1, total);
     $('chip-remaining').textContent = 'Q ' + shown + ' / ' + total;
     $('progress-fill').style.width = ((state.index + (state.roundResolved ? 1 : 0)) / total * 100) + '%';
-
-    if (state.isMultiplayer) {
-      const count = state.isHost ? Object.keys(state.players).length + 1 : state.playerCount;
-      $('chip-players-connected').textContent = 'Players: ' + count;
-    }
   }
 
   // =======================================================================
   // RESULTS
   // =======================================================================
 
-  function endGame() {
+  function endSoloGame() {
+    showResults(null);
+  }
+
+  function showResults(standings) {
     stopTimer();
     clearTimeout(state.advanceTimeout);
-    closeLeaderboard();
+    closeBoard();
     showScreen('screen-results');
 
-    const answered = state.answeredCount || state.questions.length || 1;
+    const answered = state.answeredCount || state.total || state.questions.length || 1;
     const accuracy = Math.round((state.correctCount / answered) * 100);
 
     const outcome = $('final-outcome');
     const summary = $('final-summary');
-    const lb = $('final-lb-container');
+    const board = $('final-lb-container');
 
-    if (state.isMultiplayer) {
-      lb.textContent = '';
-      Array.from($('lb-list-container').children).forEach((row) => lb.appendChild(row.cloneNode(true)));
-      lb.classList.remove('hidden');
-      const top = lb.firstElementChild;
-      const won = !!(top && top.classList.contains('me'));
-      outcome.textContent = won ? 'Victory' : 'Good Game';
+    if (standings) {
+      renderFinalStandings(board, standings);
+      board.classList.remove('hidden');
+      const place = standings.map((p) => p.id).indexOf(state.myId) + 1;
+      const won = place === 1 && standings.length > 1;
+      outcome.textContent = standings.length < 2 ? 'Match Over' : (won ? 'Victory' : 'Good Game');
       outcome.style.color = won ? 'var(--correct)' : 'var(--navy)';
-      summary.textContent = subject().title + ' - ' + state.questions.length + ' questions';
+      summary.textContent = subject().title + ' - ' +
+        (place ? ordinal(place) + ' of ' + standings.length : 'match complete') +
+        ', ' + state.correctCount + ' of ' + answered + ' correct';
     } else {
-      lb.classList.add('hidden');
+      board.classList.add('hidden');
       outcome.textContent = gradeFor(accuracy);
       outcome.style.color = accuracy >= 70 ? 'var(--correct)' : accuracy >= 50 ? 'var(--sepia-dk)' : 'var(--rust)';
       summary.textContent = subject().title + ' - ' + state.correctCount + ' of ' + answered + ' correct';
@@ -1037,6 +1015,24 @@
     const solo = !state.isMultiplayer;
     $('btn-play-again').classList.toggle('hidden', !solo);
     $('btn-change-settings').classList.toggle('hidden', !solo);
+  }
+
+  function renderFinalStandings(host, standings) {
+    host.textContent = '';
+    standings.forEach((player, i) => {
+      const row = el('div', 'standing' + (i === 0 ? ' first' : '') + (player.id === state.myId ? ' me' : ''));
+      row.appendChild(el('span', 'place', ordinal(i + 1)));
+      row.appendChild(el('span', 'name', player.name + (player.connected ? '' : ' (left)')));
+      row.appendChild(el('span', 'detail', player.correctCount + '/' + (player.answeredCount || 0) + ' correct'));
+      row.appendChild(el('span', 'points', String(player.score)));
+      host.appendChild(row);
+    });
+  }
+
+  function ordinal(n) {
+    const tens = n % 100;
+    if (tens >= 11 && tens <= 13) return n + 'th';
+    return n + (['th', 'st', 'nd', 'rd'][n % 10] || 'th');
   }
 
   function gradeFor(accuracy) {
@@ -1093,371 +1089,561 @@
     if (!state.lastSettings) return showScreen('screen-main-menu');
     state.questions = buildSession(state.lastSettings.filters, state.lastSettings.count);
     if (!state.questions.length) return showScreen('screen-main-menu');
-    startGame();
+    startSoloGame();
   }
 
   // =======================================================================
   // MULTIPLAYER
   // =======================================================================
+  //
+  // The host runs a Match (match.js) and is the only place scores, phases and
+  // powerups are decided. Everybody - the host included - then renders from
+  // the snapshots it produces, so there is one drawing path on screen and no
+  // separate "the host is also a player" bookkeeping to drift out of sync.
+  //
+  //   client --{answer|buy}--> host --> Match --> {sync|ev} --> every client
+  //
+  // net.js owns the wire: room codes, identity that survives a dropped
+  // connection, heartbeats, clock offset and reconnection.
 
-  let peerLibrary = null;
-  function loadPeerLibrary() {
-    if (window.Peer) return Promise.resolve();
-    if (!peerLibrary) {
-      peerLibrary = new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js';
-        script.onload = resolve;
-        script.onerror = () => { peerLibrary = null; reject(new Error('PeerJS failed to load')); };
-        document.head.appendChild(script);
-      });
-    }
-    return peerLibrary;
+  const HOST_TICK_MS = 200;
+  const RESYNC_MS = 2000;
+
+  /** The host's clock. On the host that is just the clock. */
+  function hostNow() {
+    return (state.net && !state.isHost) ? state.net.now() : Date.now();
   }
 
-  /**
-   * Calls `onLost` when a peer really goes away.
-   *
-   * PeerJS only emits 'close' on a graceful hang-up, so a player who closes
-   * the tab or drops off the network would otherwise leave everyone else
-   * waiting forever. Watching the underlying ICE state catches that case. A
-   * brief 'disconnected' is often just a network hiccup, so it gets a grace
-   * period; 'failed' and 'closed' are terminal.
-   */
-  function watchConnection(conn, onLost) {
-    let done = false;
-    let graceTimer = null;
-    const lost = () => {
-      if (done) return;
-      done = true;
-      clearTimeout(graceTimer);
-      onLost();
-    };
+  const playerIn = (snap, id) => snap.players.filter((p) => p.id === id)[0] || null;
+  const rank = (snap) => snap.players.slice().sort((a, b) => b.score - a.score);
 
-    conn.on('close', lost);
-    conn.on('error', lost);
-
-    const attach = () => {
-      const pc = conn.peerConnection;
-      if (!pc) return setTimeout(attach, 500);
-      const check = () => {
-        const status = pc.iceConnectionState;
-        if (status === 'failed' || status === 'closed') return lost();
-        if (status === 'disconnected') graceTimer = setTimeout(() => {
-          if (pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') lost();
-        }, 5000);
-        else clearTimeout(graceTimer);
-      };
-      pc.addEventListener('iceconnectionstatechange', check);
-      pc.addEventListener('connectionstatechange', () => {
-        if (pc.connectionState === 'failed' || pc.connectionState === 'closed') lost();
-      });
-      check();
-    };
-    attach();
+  function resultFor(snap, id) {
+    if (!snap.reveal) return null;
+    return snap.reveal.results.filter((r) => r.id === id)[0] || null;
   }
 
-  function generateRoomCode() {
-    const chars = 'BCDFGHJKLMNPQRSTVWXYZ';
-    let code = '';
-    for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-    return code;
-  }
-
-  function broadcast(data) {
-    Object.values(state.players).forEach((p) => { if (p.conn && p.conn.open) p.conn.send(data); });
-  }
+  // --- hosting -----------------------------------------------------------
 
   function startHosting() {
-    mountSettings('host-settings-target');
-    showScreen('screen-mp-host');
-    $('room-code').textContent = '....';
-    state.isHost = true;
-    state.players = {};
-    updateHostRoster();
-
-    loadPeerLibrary()
-      .then(() => openHostPeer(0))
-      .catch(() => {
-        setError('host-error', 'Could not load the multiplayer library. Check your connection and try again.');
-        $('room-code').textContent = '----';
-      });
-  }
-
-  function openHostPeer(attempt) {
-    if (state.peer) { state.peer.destroy(); state.peer = null; }
-    const peer = new Peer(generateRoomCode(), PEER_CONFIG);
-    state.peer = peer;
-
-    peer.on('open', (id) => { $('room-code').textContent = id; updateHostRoster(); });
-
-    peer.on('error', (err) => {
-      // A taken room code is worth retrying silently with a fresh one.
-      if (err && err.type === 'unavailable-id' && attempt < 3) return openHostPeer(attempt + 1);
-      setError('host-error', 'Network error: ' + ((err && err.type) || 'unknown'));
-      showToast('Network error: ' + ((err && err.type) || 'unknown'), 'bad');
-    });
-
-    peer.on('connection', (connection) => {
-      connection.on('data', (msg) => handleHostMessage(connection, msg));
-      watchConnection(connection, () => {
-        if (!state.players[connection.peer]) return;
-        const name = state.players[connection.peer].name;
-        delete state.players[connection.peer];
-        updateHostRoster();
-        updateStats();
-        renderDynamicLeaderboard();
-        showToast(name + ' left the match.', 'bad');
-        // A departing player must not hold the round open for everyone else.
-        checkAllAnswered();
-      });
-    });
-  }
-
-  function handleHostMessage(connection, msg) {
-    if (!msg || typeof msg.type !== 'string') return;
-
-    if (msg.type === 'JOIN') {
-      state.players[connection.peer] = {
-        conn: connection,
-        name: String(msg.name || 'Player').slice(0, 15),
-        score: 0,
-        answer: null,
-        // A player who joins mid-round is not blocking the current question.
-        hasAnswered: state.roundResolved || !state.isMultiplayer
-      };
-      updateHostRoster();
-    } else if (msg.type === 'ANSWER_SUBMITTED') {
-      const player = state.players[connection.peer];
-      if (player) { player.answer = msg.answer; player.hasAnswered = true; }
-      checkAllAnswered();
-    } else if (msg.type === 'ATTACK') {
-      processAttackFromClient(connection.peer, msg.attackType);
-    } else if (msg.type === 'ATTACK_SUCCESS') {
-      creditAttacker(msg.attacker, Number(msg.amount) || 0);
-    } else if (msg.type === 'SCORE_SYNC') {
-      if (state.players[connection.peer]) {
-        state.players[connection.peer].score = Number(msg.score) || 0;
-        renderDynamicLeaderboard();
-      }
-    }
-  }
-
-  function creditAttacker(attackerId, amount) {
-    if (amount <= 0) return;
-    if (attackerId === 'HOST') {
-      state.score += amount;
-      updateStats();
-      showToast('You stole ' + amount + ' points!', 'good');
-    } else if (state.players[attackerId]) {
-      state.players[attackerId].score += amount;
-      sendTo(attackerId, { type: 'TOAST', msg: 'You stole ' + amount + ' points!', t: 'good' });
-      sendTo(attackerId, { type: 'SCORE_SYNC', score: state.players[attackerId].score });
-    }
-    renderDynamicLeaderboard();
-  }
-
-  function sendTo(playerId, payload) {
-    const player = state.players[playerId];
-    if (player && player.conn && player.conn.open) player.conn.send(payload);
-  }
-
-  function updateHostRoster() {
-    const roster = $('host-roster');
-    roster.textContent = '';
-    roster.appendChild(el('div', 'roster-item is-host', state.playerName + ' (Host)'));
-    const names = Object.values(state.players).map((p) => p.name);
-    names.forEach((name) => roster.appendChild(el('div', 'roster-item', name)));
-    if (!names.length) roster.appendChild(el('div', 'roster-item subtle', 'Waiting for players to join...'));
-    broadcast({ type: 'ROSTER_UPDATE', names: names, hostName: state.playerName });
-  }
-
-  function hostStartGame() {
-    const settings = readSettings('host-error');
-    if (!settings) return;
-
-    state.questions = buildSession(settings.filters, settings.count);
-    if (!state.questions.length) return setError('host-error', 'No questions matched those settings.');
+    if (!requireName()) return;
+    teardownNet();
 
     state.isMultiplayer = true;
-    state.useTimer = settings.useTimer;
-    state.timerSeconds = settings.seconds;
+    state.isHost = true;
+    state.myId = Net.clientId();
+    state.roomCode = null;
+
+    // The match exists from the moment the lobby opens, so arriving players
+    // are real roster entries rather than a second list to reconcile later.
+    state.match = Match.create({
+      questions: [],
+      useTimer: $('timer-toggle').checked,
+      timerSeconds: clamp(parseInt($('timer-seconds').value, 10) || 20, 5, 300),
+      subject: state.subject
+    });
+    state.match.addPlayer(state.myId, state.playerName, true);
+
+    enterLobby(true);
+    $('room-code').textContent = '.....';
+
+    state.net = Net.hostMatch({
+      protocol: Match.PROTOCOL,
+      onReady: (code) => {
+        state.roomCode = code;
+        $('room-code').textContent = code;
+        publish();
+      },
+      onJoin: (session) => {
+        state.match.addPlayer(session.id, session.name, false);
+        publish();
+      },
+      onLeave: (id) => {
+        state.match.setConnected(id, false, Date.now());
+        publish();
+      },
+      onMessage: handleClientMessage,
+      onError: (message) => {
+        setError('lobby-error', message);
+        showToast(message, 'bad');
+      }
+    });
+
+    syncHostSettings();
+    startHostTicker();
+  }
+
+  function startHostTicker() {
+    clearInterval(state.hostTicker);
+    let lastPublish = 0;
+    state.hostTicker = setInterval(() => {
+      if (!state.match || !state.net) return;
+      const now = Date.now();
+      const moved = state.match.tick(now);
+      // Republish on a slow heartbeat even when nothing moved, so a client
+      // that missed a packet is never more than a couple of seconds stale.
+      if (moved || now - lastPublish > RESYNC_MS) { lastPublish = now; publish(); }
+    }, HOST_TICK_MS);
+  }
+
+  function handleClientMessage(id, msg) {
+    if (!state.match || !msg || typeof msg.t !== 'string') return;
+
+    if (msg.t === 'answer') {
+      if (state.match.submitAnswer(id, msg.round, msg.choice, msg.remaining, Date.now())) publish();
+    } else if (msg.t === 'buy') {
+      const result = state.match.buy(id, String(msg.item), Date.now());
+      if (!result.ok) state.net.send(id, { t: 'nope', reason: result.reason });
+      publish();
+    }
+  }
+
+  /** Pushes a personalized snapshot to every client, and to this tab. */
+  function publish() {
+    if (!state.match || !state.net || !state.isHost) return;
+    const now = Date.now();
+    state.net.broadcast((id) => ({ t: 'sync', s: state.match.snapshotFor(id, now) }));
+    routeEvents(state.match.drainEvents());
+    applySnapshot(state.match.snapshotFor(state.myId, now));
+  }
+
+  /** Public events go to the room; private ones only to the player concerned. */
+  function routeEvents(events) {
+    events.forEach((event) => {
+      if (event.audience) {
+        if (event.audience === state.myId) announce(event);
+        else state.net.send(event.audience, { t: 'ev', e: event });
+        return;
+      }
+      state.net.broadcast({ t: 'ev', e: event });
+      announce(event);
+    });
+  }
+
+  /** Mirrors the host's settings controls into the match while in the lobby. */
+  function syncHostSettings() {
+    if (!state.isHost || !state.match || state.match.phase !== 'lobby') return;
+    const requested = parseInt($('q-count').value, 10);
+    state.match.configure({
+      subject: state.subject,
+      useTimer: $('timer-toggle').checked,
+      timerSeconds: clamp(parseInt($('timer-seconds').value, 10) || 20, 5, 300),
+      previewCount: isNaN(requested) ? 10 : requested
+    });
+    publish();
+  }
+
+  function hostStartMatch() {
+    const settings = readSettings('lobby-error');
+    if (!settings) return;
+
+    const questions = buildSession(settings.filters, settings.count);
+    if (!questions.length) return setError('lobby-error', 'No questions matched those settings.');
+
+    state.questions = questions;
+    state.total = questions.length;
+    state.misses = [];
     state.lastSettings = settings;
 
-    broadcast({
-      type: 'START',
-      data: state.questions,
+    state.match.configure({
+      questions: questions,
       useTimer: settings.useTimer,
       timerSeconds: settings.seconds,
       subject: state.subject
     });
-    startGame();
+    if (!state.match.start(Date.now())) return setError('lobby-error', 'Could not start the match.');
+    publish();
   }
 
-  function joinGame() {
+  function hostSkipAhead() {
+    if (!state.isHost || !state.match) return;
+    if (state.match.skip(Date.now())) publish();
+  }
+
+  // --- joining -----------------------------------------------------------
+
+  function joinRoom() {
     if (!requireName()) return showScreen('screen-main-menu');
-    const code = $('join-code-input').value.trim().toUpperCase();
-    if (code.length !== 4) {
-      $('join-status-msg').textContent = 'Room codes are four letters.';
+    const code = Net.normalizeCode($('join-code-input').value);
+    if (code.length !== Net.CODE_LENGTH) {
+      $('join-status-msg').textContent = 'Room codes are ' + Net.CODE_LENGTH + ' characters long.';
       return;
     }
 
-    $('join-btn').disabled = true;
-    $('join-status-msg').textContent = 'Connecting...';
-
-    loadPeerLibrary().then(() => {
-      state.isHost = false;
-      state.peer = new Peer(PEER_CONFIG);
-
-      state.peer.on('open', () => {
-        state.conn = state.peer.connect(code);
-        setupClientConnection();
-      });
-
-      state.peer.on('error', (err) => {
-        const missing = err && err.type === 'peer-unavailable';
-        $('join-status-msg').textContent = missing ? 'No room found with that code.' : 'Connection failed.';
-        showToast(missing ? 'Room not found.' : 'Network error.', 'bad');
-        $('join-btn').disabled = false;
-      });
-    }).catch(() => {
-      $('join-status-msg').textContent = 'Could not load the multiplayer library.';
-      $('join-btn').disabled = false;
-    });
-  }
-
-  function setupClientConnection() {
-    const conn = state.conn;
-
-    conn.on('open', () => {
-      state.isMultiplayer = true;
-      $('joined-room-code').textContent = conn.peer;
-      $('join-btn').disabled = false;
-      $('join-status-msg').textContent = '';
-      showScreen('screen-mp-join');
-      conn.send({ type: 'JOIN', name: state.playerName });
-    });
-
-    conn.on('data', (msg) => {
-      if (!msg || typeof msg.type !== 'string') return;
-
-      if (msg.type === 'ROSTER_UPDATE') {
-        const roster = $('join-roster');
-        roster.textContent = '';
-        roster.appendChild(el('div', 'roster-item is-host', String(msg.hostName || 'Host') + ' (Host)'));
-        (msg.names || []).forEach((name) => {
-          const mine = name === state.playerName;
-          roster.appendChild(el('div', 'roster-item' + (mine ? ' is-me' : ''), name + (mine ? ' (You)' : '')));
-        });
-        state.playerCount = (msg.names || []).length + 1;
-        updateStats();
-      } else if (msg.type === 'START') {
-        if (!Array.isArray(msg.data) || !msg.data.length) return;
-        if (SUBJECTS[msg.subject]) {
-          $('subject-dropdown').value = msg.subject;
-          applySubject();
-        }
-        state.questions = msg.data;
-        state.useTimer = !!msg.useTimer;
-        state.timerSeconds = clamp(Number(msg.timerSeconds) || 20, 5, 300);
-        state.isMultiplayer = true;
-        startGame();
-      } else if (msg.type === 'ROUND_RESULTS') {
-        resolveRound(msg.correctAnswer);
-      } else if (msg.type === 'NEXT_QUESTION') {
-        nextQuestion();
-      } else if (msg.type === 'LB_SYNC') {
-        state.currentLeader = msg.leader;
-        state.playerCount = (msg.lb || []).length;
-        renderLeaderboardRows(msg.lb || []);
-        updateStats();
-      } else if (msg.type === 'ATTACK_RECEIVED') {
-        handleIncomingAttack(msg.attackType, msg.attacker);
-      } else if (msg.type === 'TOAST') {
-        showToast(String(msg.msg || ''), msg.t);
-      } else if (msg.type === 'SCORE_SYNC') {
-        state.score = Number(msg.score) || 0;
-        updateStats();
-      }
-    });
-
-    watchConnection(conn, () => {
-      if (!state.isMultiplayer) return;
-      leaveMatch();
-      showToast('Lost connection to the host.', 'bad');
-    });
-  }
-
-  /** Tears the match down without prompting - used when the host vanishes. */
-  function leaveMatch() {
-    stopTimer();
-    clearInterval(state.breakInterval);
-    clearTimeout(state.advanceTimeout);
-    if (state.conn) { try { state.conn.close(); } catch (e) { /* already gone */ } state.conn = null; }
-    if (state.peer) { try { state.peer.destroy(); } catch (e) { /* already gone */ } state.peer = null; }
-    state.isMultiplayer = false;
+    teardownNet();
+    state.isMultiplayer = true;
     state.isHost = false;
-    state.players = {};
-    closeLeaderboard();
-    $('join-btn').disabled = false;
-    $('join-status-msg').textContent = '';
-    setError('host-error', '');
-    showScreen('screen-main-menu');
-  }
+    state.roomCode = code;
+    state.misses = [];
 
-  function quitToMenu() {
-    const inMatch = state.isMultiplayer || $('screen-quiz').classList.contains('active');
-    if (inMatch && !window.confirm('Quit this session and return to the main menu?')) return;
-    leaveMatch();
-  }
+    $('join-btn').disabled = true;
+    $('join-status-msg').textContent = 'Connecting to ' + code + '...';
 
-  // --- round break / leaderboard ----------------------------------------
-
-  function openLeaderboard() {
-    $('leaderboard-modal').classList.add('open');
-    $('lb-timer').textContent = String(ROUND_BREAK_SECONDS);
-
-    let countdown = ROUND_BREAK_SECONDS;
-    clearInterval(state.breakInterval);
-    state.breakInterval = setInterval(() => {
-      countdown--;
-      $('lb-timer').textContent = String(Math.max(0, countdown));
-      if (countdown <= 0) {
-        clearInterval(state.breakInterval);
-        // Only the host drives the clock; clients wait for NEXT_QUESTION so
-        // everyone stays on the same question even with uneven latency.
-        if (state.isHost) { broadcast({ type: 'NEXT_QUESTION' }); nextQuestion(); }
+    state.net = Net.joinMatch(code, {
+      protocol: Match.PROTOCOL,
+      name: () => state.playerName,
+      onOpen: (welcome) => {
+        state.myId = welcome.id;
+        $('join-btn').disabled = false;
+        $('join-status-msg').textContent = '';
+        enterLobby(false);
+        $('room-code').textContent = code;
+      },
+      onMessage: (msg) => {
+        if (!msg || typeof msg.t !== 'string') return;
+        if (msg.t === 'sync') applySnapshot(msg.s);
+        else if (msg.t === 'ev') announce(msg.e);
+        else if (msg.t === 'nope') showToast(String(msg.reason || 'That is not allowed.'), 'bad');
+        else if (msg.t === 'bye') matchEndedEarly(String(msg.reason || 'The host ended the match.'));
+      },
+      onStatus: setNetStatus,
+      onFatal: (message) => {
+        setNetStatus(null);
+        $('join-btn').disabled = false;
+        $('join-status-msg').textContent = message;
+        // Mid-match, the standings already in hand beat dumping them to the
+        // menu with nothing to show for the game they just played.
+        if (state.snap && state.snap.phase !== 'lobby') return matchEndedEarly(message);
+        showToast(message, 'bad');
+        teardownNet();
+        showScreen('screen-mp-lobby');
       }
-    }, 1000);
+    });
   }
 
-  function closeLeaderboard() {
-    clearInterval(state.breakInterval);
+  function matchEndedEarly(reason) {
+    const snap = state.snap;
+    const playedSomething = snap && snap.phase !== 'lobby';
+    teardownNet();
+    showToast(reason, 'bad');
+    if (playedSomething) return showResults(rank(snap));
+    showScreen('screen-mp-lobby');
+  }
+
+  // --- lobby -------------------------------------------------------------
+
+  function enterLobby(isHost) {
+    document.body.dataset.mode = isHost ? 'host' : 'guest';
+    document.querySelectorAll('.host-only').forEach((node) => { node.hidden = !isHost; });
+    document.querySelectorAll('.guest-only').forEach((node) => { node.hidden = isHost; });
+    $('lobby-readout').hidden = isHost;
+
+    $('lobby-roster').textContent = '';
+    $('roster-count').textContent = '';
+    setError('lobby-error', '');
+    if (isHost) mountSettings('lobby-settings-target');
+    showScreen('screen-lobby');
+  }
+
+  function renderLobby(snap) {
+    if (!$('screen-lobby').classList.contains('active')) showScreen('screen-lobby');
+    renderRoster($('lobby-roster'), snap.players);
+
+    const live = snap.players.filter((p) => p.connected).length;
+    $('roster-count').textContent = live + (live === 1 ? ' player' : ' players') + ' connected';
+
+    if (state.isHost) {
+      $('btn-start-match').textContent = live > 1
+        ? 'Start Match (' + live + ' players)'
+        : 'Start Match (just you)';
+    } else {
+      renderSettingsReadout(snap.settings);
+    }
+  }
+
+  function renderRoster(host, players) {
+    host.textContent = '';
+    if (!players.length) {
+      host.appendChild(el('div', 'roster-empty', 'Waiting for players to join...'));
+      return;
+    }
+    players.forEach((p) => {
+      const card = el('div', 'player-card'
+        + (p.id === state.myId ? ' is-me' : '')
+        + (p.isHost ? ' is-host' : '')
+        + (p.connected ? '' : ' is-gone'));
+      card.appendChild(el('span', 'dot'));
+      card.appendChild(el('span', 'who', p.name));
+
+      let tag = '';
+      if (!p.connected) tag = 'Away';
+      else if (p.isHost && p.id === state.myId) tag = 'You, host';
+      else if (p.isHost) tag = 'Host';
+      else if (p.id === state.myId) tag = 'You';
+      if (tag) card.appendChild(el('span', 'tag', tag));
+
+      host.appendChild(card);
+    });
+  }
+
+  function renderSettingsReadout(settings) {
+    const box = $('lobby-readout');
+    box.textContent = '';
+    const list = el('dl');
+    const add = (term, value) => {
+      list.appendChild(el('dt', null, term));
+      list.appendChild(el('dd', null, value));
+    };
+    const config = SUBJECTS[settings.subject];
+    add('Subject', config ? config.title : 'Waiting...');
+    add('Questions', settings.count ? String(settings.count) : 'Waiting...');
+    add('Timer', settings.useTimer ? settings.timerSeconds + ' seconds per question' : 'Off');
+    box.appendChild(list);
+  }
+
+  function copyToClipboard(text, okMessage) {
+    const fallback = () => {
+      const scratch = document.createElement('textarea');
+      scratch.value = text;
+      scratch.setAttribute('readonly', '');
+      scratch.style.position = 'fixed';
+      scratch.style.opacity = '0';
+      document.body.appendChild(scratch);
+      scratch.select();
+      let worked = false;
+      try { worked = document.execCommand('copy'); } catch (e) { worked = false; }
+      document.body.removeChild(scratch);
+      showToast(worked ? okMessage : 'Could not copy - the code is on screen.', worked ? 'good' : 'bad');
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => showToast(okMessage, 'good'), fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function inviteLink() {
+    return location.origin + location.pathname + '#join=' + (state.roomCode || '');
+  }
+
+  // --- snapshot rendering ------------------------------------------------
+
+  /** The one entry point for match state. Everything on screen follows it. */
+  function applySnapshot(snap) {
+    if (!snap || !state.isMultiplayer) return;
+    if (state.snap && snap.seq < state.snap.seq) return;    // arrived out of order
+    state.snap = snap;
+
+    // A guest adopts the host's subject so badges and powerup names match.
+    if (snap.settings.subject && snap.settings.subject !== state.subject && SUBJECTS[snap.settings.subject]) {
+      $('subject-dropdown').value = snap.settings.subject;
+      applySubject();
+      if (state.shownPhase) renderShop();
+    }
+    state.useTimer = !!snap.settings.useTimer;
+    state.timerSeconds = snap.settings.timerSeconds || 20;
+
+    if (snap.phase === 'lobby') return renderLobby(snap);
+    if (snap.phase === 'question') return showQuestionPhase(snap);
+    if (snap.phase === 'reveal') return showRevealPhase(snap);
+    if (snap.phase === 'over') return endMatch(snap);
+  }
+
+  function enterMatchScreen() {
+    $('chip-players-connected').classList.remove('hidden');
+    $('chip-rank').classList.remove('hidden');
+    $('shop-container').style.display = 'block';
+    $('keyboard-hint').textContent = 'Keyboard: press 1-4 to answer.';
+    renderShop();
+    showScreen('screen-quiz');
+  }
+
+  function showQuestionPhase(snap) {
+    const fresh = state.shownRound !== snap.round || state.shownPhase !== 'question';
+
+    if (fresh) {
+      state.shownRound = snap.round;
+      state.shownPhase = 'question';
+      closeBoard();
+      if (!$('screen-quiz').classList.contains('active')) enterMatchScreen();
+      $('timer-wrapper').style.display = snap.settings.useTimer ? 'block' : 'none';
+
+      renderQuestion(snap.question, {
+        onPick: sendAnswer,
+        eliminate: snap.you ? snap.you.eliminate : [],
+        locked: !!(snap.you && snap.you.answered),
+        chosen: snap.you ? snap.you.answer : null
+      });
+
+      if (snap.settings.useTimer) {
+        startTimer(snap.settings.timerSeconds * 1000, snap.deadline - hostNow(), () => lockOptions());
+      } else {
+        stopTimer();
+      }
+    }
+
+    if (snap.settings.useTimer) syncTimer(snap.deadline - hostNow());
+
+    if (snap.you && snap.you.watching) {
+      $('waiting-msg').textContent = 'You joined mid-question, so you are sitting this one out.';
+      $('waiting-msg').classList.remove('hidden');
+    } else if (snap.you && snap.you.answered) {
+      $('waiting-msg').textContent = 'Answer locked in.';
+      $('waiting-msg').classList.remove('hidden');
+      lockOptions(snap.you.answer);
+    }
+
+    renderTracker(snap);
+    adoptSnapshotStats(snap);
+  }
+
+  /** Who has locked in. Replaces the old blank "waiting for players" box. */
+  function renderTracker(snap) {
+    const track = $('answer-tracker');
+    track.textContent = '';
+
+    const live = snap.players.filter((p) => p.connected && !p.watching);
+    const done = live.filter((p) => p.answered).length;
+    track.appendChild(el('span', 'tracker-label', done + ' of ' + live.length + ' answered'));
+
+    snap.players.forEach((p) => {
+      const pip = el('span', 'tracker-pip'
+        + (p.answered && p.connected && !p.watching ? ' done' : '')
+        + (p.connected ? '' : ' gone')
+        + (p.watching ? ' watching' : ''), p.name);
+      pip.title = p.connected
+        ? (p.watching ? 'Watching this round' : (p.answered ? 'Answered' : 'Still thinking'))
+        : 'Disconnected';
+      track.appendChild(pip);
+    });
+
+    track.classList.remove('hidden');
+  }
+
+  function sendAnswer(option, btn) {
+    const snap = state.snap;
+    if (!snap || snap.phase !== 'question') return;
+    if (snap.you && (snap.you.answered || snap.you.watching)) return;
+
+    const remaining = Math.round(remainingTime());
+    lockOptions();
+    if (btn) btn.classList.add('selected');
+    $('waiting-msg').textContent = 'Answer locked in.';
+    $('waiting-msg').classList.remove('hidden');
+
+    if (state.isHost) {
+      if (state.match.submitAnswer(state.myId, snap.round, option, remaining, Date.now())) publish();
+    } else {
+      state.net.send({ t: 'answer', round: snap.round, choice: option, remaining: remaining });
+    }
+  }
+
+  function showRevealPhase(snap) {
+    const fresh = state.shownPhase !== 'reveal' || state.shownRound !== snap.round;
+
+    if (fresh) {
+      state.shownPhase = 'reveal';
+      state.shownRound = snap.round;
+      stopTimer();
+      $('answer-tracker').classList.add('hidden');
+      $('waiting-msg').classList.add('hidden');
+
+      const mine = resultFor(snap, state.myId);
+      lockOptions(mine ? mine.choice : null);
+      paintAnswers(snap.reveal.answer);
+
+      if (mine && mine.watching) {
+        showFeedback(snap.question.question, snap.reveal.explanation, snap.reveal.answer,
+          false, false, 'You sat this one out');
+      } else {
+        const correct = !!(mine && mine.correct);
+        showFeedback(snap.question.question, snap.reveal.explanation, snap.reveal.answer,
+          correct, !!(mine && mine.choice === null));
+        if (!correct) {
+          recordMiss(snap.question.question, snap.reveal.answer,
+            mine ? mine.choice : null, snap.reveal.explanation);
+        }
+      }
+
+      clearTimeout(state.advanceTimeout);
+      state.advanceTimeout = setTimeout(openBoard, 1400);
+    }
+
+    renderBoard(snap);
+    adoptSnapshotStats(snap);
+  }
+
+  function openBoard() { $('leaderboard-modal').classList.add('open'); }
+
+  function closeBoard() {
+    clearInterval(state.boardTimer);
+    state.boardTimer = null;
     $('leaderboard-modal').classList.remove('open');
   }
 
-  function renderDynamicLeaderboard() {
-    if (!state.isHost) return;
-    const rows = [{ id: 'HOST', name: state.playerName, score: state.score }];
-    Object.keys(state.players).forEach((id) => {
-      rows.push({ id: id, name: state.players[id].name, score: state.players[id].score });
-    });
-    rows.sort((a, b) => b.score - a.score);
-    state.currentLeader = rows[0].name;
-    renderLeaderboardRows(rows);
-    broadcast({ type: 'LB_SYNC', lb: rows, leader: state.currentLeader });
-  }
+  function renderBoard(snap) {
+    $('lb-title').textContent = snap.round + 1 >= snap.total
+      ? 'Final Round'
+      : 'Round ' + (snap.round + 1) + ' of ' + snap.total;
 
-  function renderLeaderboardRows(rows) {
+    const results = {};
+    (snap.reveal ? snap.reveal.results : []).forEach((r) => { results[r.id] = r; });
+
     const container = $('lb-list-container');
     container.textContent = '';
-    rows.forEach((player, i) => {
-      const mine = state.isHost ? player.id === 'HOST' : player.name === state.playerName;
-      const row = el('div', 'lb-row' + (mine ? ' me' : ''));
-      row.appendChild(el('span', null, (i + 1) + '. ' + player.name));
-      row.appendChild(el('span', null, String(player.score)));
+    rank(snap).forEach((player, i) => {
+      const result = results[player.id];
+      const row = el('div', 'lb-row'
+        + (player.id === state.myId ? ' me' : '')
+        + (player.connected ? '' : ' gone'));
+
+      const who = el('div', 'lb-who');
+      who.appendChild(el('span', 'lb-place', (i + 1) + '.'));
+      if (result && !result.watching) {
+        who.appendChild(el('span', 'lb-mark ' + (result.correct ? 'hit' : 'miss'), result.correct ? '✓' : '✗'));
+      }
+      who.appendChild(el('span', 'lb-name', player.name));
+      row.appendChild(who);
+
+      const tally = el('div', 'lb-tally');
+      const gained = result ? result.gained : 0;
+      tally.appendChild(el('span', 'lb-delta' + (gained ? '' : ' zero'), gained ? '+' + gained : '—'));
+      tally.appendChild(el('span', null, String(player.score)));
+      row.appendChild(tally);
+
       container.appendChild(row);
     });
+
+    // One countdown, read off the host's deadline, so nobody is left staring
+    // at a zero that never advances.
+    clearInterval(state.boardTimer);
+    const paintCountdown = () => {
+      $('lb-timer').textContent = String(Math.max(0, Math.ceil((snap.deadline - hostNow()) / 1000)));
+    };
+    paintCountdown();
+    state.boardTimer = setInterval(paintCountdown, 250);
+
+    renderShopState(snap);
+  }
+
+  function adoptSnapshotStats(snap) {
+    const me = playerIn(snap, state.myId);
+    state.total = snap.total;
+    state.index = snap.round;
+    state.roundResolved = snap.phase !== 'question';
+    state.score = me ? me.score : 0;
+    state.streak = me ? me.streak : 0;
+    state.correctCount = me ? me.correctCount : 0;
+    state.answeredCount = me ? me.answeredCount : 0;
+    state.bestStreak = me ? me.bestStreak : 0;
+
+    const live = snap.players.filter((p) => p.connected).length;
+    $('chip-players-connected').textContent = 'Players: ' + live;
+
+    const ranked = rank(snap);
+    const place = ranked.map((p) => p.id).indexOf(state.myId) + 1;
+    $('chip-rank').textContent = place ? ordinal(place) + ' of ' + ranked.length : '-';
+
+    updateStats();
+  }
+
+  function endMatch(snap) {
+    if (state.shownPhase === 'over') return;
+    state.shownPhase = 'over';
+    clearInterval(state.hostTicker);
+    state.hostTicker = null;
+    adoptSnapshotStats(snap);
+    showResults(rank(snap));
   }
 
   // --- powerups ----------------------------------------------------------
@@ -1467,107 +1653,152 @@
     const names = subject().powerups;
     grid.textContent = '';
     POWERUP_ORDER.forEach((key) => {
+      const spec = Match.POWERUPS[key];
       const btn = el('button', 'shop-item');
       btn.type = 'button';
+      btn.dataset.item = key;
       btn.appendChild(el('strong', null, names[key]));
-      btn.appendChild(document.createTextNode(POWERUP_DESCRIPTIONS[key]));
+      btn.appendChild(document.createTextNode(spec.blurb));
       btn.appendChild(document.createElement('br'));
-      btn.appendChild(el('span', 'cost', 'Cost: ' + POWERUP_COSTS[key]));
+      btn.appendChild(el('span', 'cost', 'Cost: ' + spec.cost));
       btn.addEventListener('click', () => buyPowerup(key));
       grid.appendChild(btn);
     });
   }
 
-  function buyPowerup(type) {
-    const cost = POWERUP_COSTS[type];
-    if (state.powerupsUsedThisRound >= MAX_POWERUPS_PER_ROUND) {
-      return showToast('Limit reached: ' + MAX_POWERUPS_PER_ROUND + ' powerups per round.', 'bad');
-    }
-    if (state.score < cost) return showToast('Not enough points.', 'bad');
-    if (['NUKE', 'STEAL', 'ZERO'].indexOf(type) !== -1 && !state.isMultiplayer) {
-      return showToast('Attacks only work in multiplayer.', 'bad');
-    }
+  /** Greys out what this player cannot currently afford or is capped out of. */
+  function renderShopState(snap) {
+    const me = playerIn(snap, state.myId);
+    const budget = me ? me.score : 0;
+    const spent = snap.you ? snap.you.buysThisRound : 0;
+    const cap = snap.you ? snap.you.maxBuys : MAX_POWERUPS_PER_ROUND;
 
-    state.score -= cost;
-    state.powerupsUsedThisRound++;
-    const name = subject().powerups[type];
-
-    if (type === 'ELIM2') { state.buffs.elim2 = true; showToast('Bought ' + name + ' (50/50).'); }
-    if (type === 'AUTOCORRECT') { state.buffs.autocorrect = true; showToast('Bought ' + name + '.'); }
-    if (type === 'DOUBLE') { state.buffs.doublePoints = true; showToast('Bought ' + name + '.'); }
-    if (type === 'BLOCK') { state.buffs.blockAttacks++; showToast('Bought ' + name + ' (' + state.buffs.blockAttacks + ' stacked).'); }
-
-    if (type === 'GAMBLE') {
-      if (Math.random() > 0.5) { state.score += 200; showToast(name + ': won 200 points!', 'good'); }
-      else { const lost = Math.min(state.score, 100); state.score -= lost; showToast(name + ': lost ' + lost + ' points.', 'bad'); }
-    }
-
-    if (['NUKE', 'STEAL', 'ZERO'].indexOf(type) !== -1) {
-      showToast('Launched ' + name + '.');
-      if (state.isHost) processAttackFromHost(type);
-      else if (state.conn && state.conn.open) state.conn.send({ type: 'ATTACK', attackType: type });
-    }
-
-    updateStats();
-    if (state.isHost) renderDynamicLeaderboard();
-    else if (state.conn && state.conn.open) state.conn.send({ type: 'SCORE_SYNC', score: state.score });
+    $('shop-budget').textContent = budget + ' points, ' + Math.max(0, cap - spent) + ' of ' + cap + ' buys left';
+    $('dynamic-shop-grid').querySelectorAll('.shop-item').forEach((btn) => {
+      const spec = Match.POWERUPS[btn.dataset.item];
+      btn.disabled = spent >= cap || budget < spec.cost;
+    });
   }
 
-  function processAttackFromHost(type) {
-    const targets = Object.keys(state.players);
-    if (!targets.length) return showToast('No opponents to target.', 'bad');
-
-    if (type === 'STEAL' || type === 'ZERO') {
-      const target = targets[Math.floor(Math.random() * targets.length)];
-      sendTo(target, { type: 'ATTACK_RECEIVED', attackType: type, attacker: 'HOST' });
+  /**
+   * Purchases are intents, not actions: the host validates the wallet, the
+   * per-round cap and the target, then the resulting snapshot says what
+   * actually happened. That is what keeps two people spending the same points
+   * from both getting their money's worth.
+   */
+  function buyPowerup(item) {
+    if (!state.isMultiplayer || !state.snap || state.snap.phase !== 'reveal') return;
+    if (state.isHost) {
+      const result = state.match.buy(state.myId, item, Date.now());
+      if (!result.ok) return showToast(result.reason, 'bad');
+      publish();
     } else {
-      targets.forEach((id) => sendTo(id, { type: 'ATTACK_RECEIVED', attackType: type, attacker: 'HOST' }));
+      state.net.send({ t: 'buy', item: item });
     }
   }
 
-  function processAttackFromClient(attackerId, type) {
-    if (type === 'STEAL' || type === 'ZERO') {
-      const targets = Object.keys(state.players).filter((id) => id !== attackerId).concat('HOST');
-      const target = targets[Math.floor(Math.random() * targets.length)];
-      if (target === 'HOST') handleIncomingAttack(type, attackerId);
-      else sendTo(target, { type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
-    } else {
-      Object.keys(state.players).forEach((id) => {
-        if (id !== attackerId) sendTo(id, { type: 'ATTACK_RECEIVED', attackType: type, attacker: attackerId });
-      });
-      handleIncomingAttack(type, attackerId);
+  // --- chatter -----------------------------------------------------------
+
+  function announce(event) {
+    if (!event || !event.k) return;
+    const label = (key) => subject().powerups[key] || key;
+
+    if (event.k === 'join') return showToast(event.name + ' joined.', 'good');
+    if (event.k === 'leave') return showToast(event.name + ' dropped out.', 'bad');
+    if (event.k === 'rejoin') return showToast(event.name + ' reconnected.', 'good');
+
+    if (event.k === 'buy') {
+      return showToast(event.target
+        ? 'Launched ' + label(event.item) + ' at ' + event.target + '.'
+        : 'Bought ' + label(event.item) + '.', 'good');
+    }
+
+    if (event.k === 'gamble') {
+      return showToast(event.won
+        ? label('GAMBLE') + ' paid off: +' + event.amount + '!'
+        : label('GAMBLE') + ' lost ' + event.amount + ' points.', event.won ? 'good' : 'bad');
+    }
+
+    if (event.k === 'buff') {
+      if (event.item === 'DOUBLE' && event.used) return showToast('Double points!', 'good');
+      if (event.item === 'ZERO' && event.used) return showToast('Silenced - that correct answer scored 0.', 'bad');
+      return;
+    }
+
+    if (event.k === 'attack') {
+      const mine = event.toId === state.myId;
+      const theirs = event.fromId === state.myId;
+      if (event.blocked) {
+        if (mine) return showToast('Blocked ' + event.from + "'s " + label(event.item) + '!', 'good');
+        if (theirs) return showToast(event.to + ' blocked your ' + label(event.item) + '.', 'bad');
+        return showToast(event.to + ' blocked ' + event.from + "'s " + label(event.item) + '.');
+      }
+      if (event.item === 'ZERO') {
+        if (mine) return showToast(event.from + ' silenced you - your next correct answer scores 0.', 'bad');
+        if (theirs) return showToast('Silenced ' + event.to + '.', 'good');
+        return showToast(event.from + ' silenced ' + event.to + '.');
+      }
+      if (mine) return showToast(event.from + ' hit you for ' + event.amount + ' points.', 'bad');
+      if (theirs) return showToast(label(event.item) + ' hit ' + event.to + ' for ' + event.amount + '.', 'good');
+      return showToast(event.from + ' hit ' + event.to + ' for ' + event.amount + '.');
     }
   }
 
-  function handleIncomingAttack(type, attackerId) {
-    if (state.buffs.blockAttacks > 0) {
-      state.buffs.blockAttacks--;
-      return showToast('Blocked an attack! (' + state.buffs.blockAttacks + ' left)', 'good');
-    }
+  function setNetStatus(kind, detail) {
+    const bar = $('net-status');
+    if (!kind || kind === 'online') { bar.hidden = true; return; }
+    bar.hidden = false;
+    bar.dataset.kind = kind;
+    bar.textContent = kind === 'connecting'
+      ? 'Connecting to the room...'
+      : 'Connection lost - reconnecting' + (detail ? ' (attempt ' + detail + ')' : '') + '...';
+  }
 
-    let damage = 0;
-    if (type === 'NUKE') {
-      if (state.playerName === state.currentLeader) {
-        damage = Math.min(state.score, 200);
-        showToast('Nuked! You lost ' + damage + ' points.', 'bad');
-      }
-    } else if (type === 'STEAL') {
-      damage = Math.min(state.score, 100);
-      showToast('Robbed of ' + damage + ' points.', 'bad');
-    } else if (type === 'ZERO') {
-      state.buffs.zeroPoints = true;
-      showToast('Silenced - your next correct answer scores 0.', 'bad');
-    }
+  // --- leaving -----------------------------------------------------------
 
-    if (damage > 0) {
-      state.score -= damage;
-      updateStats();
-      if (state.isHost) creditAttacker(attackerId, damage);
-      else if (state.conn && state.conn.open) {
-        state.conn.send({ type: 'ATTACK_SUCCESS', amount: damage, attacker: attackerId });
-        state.conn.send({ type: 'SCORE_SYNC', score: state.score });
-      }
+  function teardownNet() {
+    clearInterval(state.hostTicker);
+    clearInterval(state.boardTimer);
+    clearTimeout(state.advanceTimeout);
+    stopTimer();
+    state.hostTicker = null;
+    state.boardTimer = null;
+
+    if (state.net) { try { state.net.close(); } catch (e) { /* already gone */ } }
+    state.net = null;
+    state.match = null;
+    state.snap = null;
+    state.isMultiplayer = false;
+    state.isHost = false;
+    state.shownRound = -1;
+    state.shownPhase = null;
+    state.roomCode = null;
+
+    setNetStatus(null);
+    closeBoard();
+    document.body.dataset.mode = 'solo';
+    $('join-btn').disabled = false;
+  }
+
+  function leaveMatch() {
+    // Tell the room before hanging up, so guests land on their standings
+    // instead of a bare "connection lost".
+    if (state.isHost && state.net) {
+      const net = state.net;
+      net.broadcast({ t: 'bye', reason: 'The host ended the match.' });
+      state.net = null;
+      setTimeout(() => { try { net.close(); } catch (e) { /* already gone */ } }, 250);
     }
+    teardownNet();
+    $('join-status-msg').textContent = '';
+    setError('lobby-error', '');
+    showScreen('screen-main-menu');
+  }
+
+  function quitToMenu() {
+    const inMatch = state.isMultiplayer || $('screen-quiz').classList.contains('active');
+    if (inMatch && !window.confirm('Quit this session and return to the main menu?')) return;
+    leaveMatch();
   }
 
   // =======================================================================
@@ -1581,23 +1812,23 @@
 
     if (event.key === 'Escape') { event.preventDefault(); return quitToMenu(); }
 
-    if (!state.answered) {
-      const index = '1234'.indexOf(event.key) !== -1
-        ? Number(event.key) - 1
-        : 'abcd'.indexOf(event.key.toLowerCase());
-      if (index >= 0) {
-        const button = $('options-grid').children[index];
-        if (button && !button.disabled && !button.classList.contains('eliminated')) {
-          event.preventDefault();
-          button.click();
-        }
+    // Whether an answer is still open is a property of the buttons, not of a
+    // flag: in a match the host decides when the round closes.
+    const index = '1234'.indexOf(event.key) !== -1
+      ? Number(event.key) - 1
+      : 'abcd'.indexOf(event.key.toLowerCase());
+    if (index >= 0) {
+      const button = $('options-grid').children[index];
+      if (button && !button.disabled && !button.classList.contains('eliminated')) {
+        event.preventDefault();
+        button.click();
       }
       return;
     }
 
     if (event.key === 'Enter' && !$('btn-next').classList.contains('hidden')) {
       event.preventDefault();
-      nextQuestion();
+      nextSoloQuestion();
     }
   }
 
@@ -1615,14 +1846,29 @@
     $('timer-seconds').disabled = !$('timer-toggle').checked;
   }
 
+  /** Lets an invite link drop someone straight onto the join screen. */
+  function readInviteCode() {
+    const match = /[#&?]join=([A-Za-z0-9]+)/.exec(location.hash || '');
+    return match ? Net.normalizeCode(match[1]) : null;
+  }
+
   function init() {
     restorePreferences();
     applySubject();
 
     $('subject-dropdown').addEventListener('change', applySubject);
-    $('timer-toggle').addEventListener('change', function () { $('timer-seconds').disabled = !this.checked; });
+    $('timer-toggle').addEventListener('change', function () {
+      $('timer-seconds').disabled = !this.checked;
+      syncHostSettings();
+    });
     $('player-name-input').addEventListener('input', () => setError('name-error', ''));
-    $('join-code-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinGame(); });
+    $('join-code-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinRoom(); });
+
+    // While the host is in the lobby, its settings are part of the match, so
+    // guests can see what they are about to play.
+    const settingsModule = $('game-settings-module');
+    settingsModule.addEventListener('input', syncHostSettings);
+    settingsModule.addEventListener('click', syncHostSettings);
 
     $('btn-single').addEventListener('click', () => {
       if (!requireName()) return;
@@ -1636,9 +1882,17 @@
 
     $('btn-start-sp').addEventListener('click', startSinglePlayer);
     $('btn-host').addEventListener('click', startHosting);
-    $('join-btn').addEventListener('click', joinGame);
-    $('start-mp-btn').addEventListener('click', hostStartGame);
-    $('btn-next').addEventListener('click', nextQuestion);
+    $('join-btn').addEventListener('click', joinRoom);
+    $('btn-start-match').addEventListener('click', hostStartMatch);
+    $('btn-host-next').addEventListener('click', hostSkipAhead);
+    $('btn-next').addEventListener('click', nextSoloQuestion);
+
+    $('btn-copy-code').addEventListener('click', () => {
+      if (state.roomCode) copyToClipboard(state.roomCode, 'Room code copied.');
+    });
+    $('btn-copy-link').addEventListener('click', () => {
+      if (state.roomCode) copyToClipboard(inviteLink(), 'Invite link copied.');
+    });
 
     $('btn-play-again').addEventListener('click', playAgain);
     $('btn-change-settings').addEventListener('click', () => {
@@ -1655,6 +1909,20 @@
     });
 
     document.addEventListener('keydown', onKeyDown);
+
+    // Closing the tab mid-match should read as leaving, not as a mystery
+    // timeout everyone else has to wait out.
+    window.addEventListener('pagehide', () => {
+      if (state.net) { try { state.net.close(); } catch (e) { /* going away anyway */ } }
+    });
+
+    const invite = readInviteCode();
+    if (invite) {
+      $('join-code-input').value = invite;
+      showScreen('screen-mp-lobby');
+      $('join-status-msg').textContent = 'Enter your name on the menu first, then join room ' + invite + '.';
+      if ($('player-name-input').value.trim()) joinRoom();
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

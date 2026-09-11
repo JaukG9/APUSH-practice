@@ -207,8 +207,8 @@ console.log('  affixes tested : %d of %d distinct',
   new Set(affixVocab.map((v) => v.affix)).size);
 if (uncoveredAffixes.length) console.log('  never tested   : %s', uncoveredAffixes.join(', '));
 
-console.log('\nAP Gov branches vocabulary : %d key terms', govBranchesVocab.length);
-console.log('AP Gov branches questions  : %d', govBranchesBank.length);
+console.log('\nAP Gov 2.3-2.8 vocabulary : %d key terms', govBranchesVocab.length);
+console.log('AP Gov 2.3-2.8 questions  : %d', govBranchesBank.length);
 console.log('  by difficulty  : %s', JSON.stringify(govCoverage.byDifficulty));
 console.log('  by type        : %s', JSON.stringify(govCoverage.byType));
 console.log('  by institution : %s', groupCounts(govCoverage));

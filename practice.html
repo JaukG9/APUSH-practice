@@ -3,21 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Practice quizzes for APUSH, AP Government foundational documents, AP Government Unit 2, and English prefixes and suffixes. Play solo or host a multiplayer match.">
+<meta name="description" content="Practice quizzes for APUSH, AP Government foundational documents, AP Government Topics 2.3-2.8, and English prefixes and suffixes. Play solo or host a multiplayer match.">
 <meta name="color-scheme" content="light">
 <title>AP Practice</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
-<link rel="stylesheet" href="styles.css">
+<!-- The ?v= stamps are a cache buster: this is a static site with no build
+     step, so bump them whenever markup, styling and scripts change together. -->
+<link rel="stylesheet" href="styles.css?v=3">
 
-<!-- Content banks load in parallel and never block first paint.
-     PeerJS is fetched on demand, only when a multiplayer match starts. -->
-<script src="questions.js" defer></script>
-<script src="affix-data.js" defer></script>
-<script src="gov-branches-data.js" defer></script>
-<script src="app.js" defer></script>
+<!-- match.js and net.js are the multiplayer engine and transport; the rest
+     are content banks. All load in parallel and never block first paint.
+     PeerJS itself is fetched on demand, only when a match actually starts. -->
+<script src="match.js?v=3" defer></script>
+<script src="net.js?v=3" defer></script>
+<script src="questions.js?v=3" defer></script>
+<script src="affix-data.js?v=3" defer></script>
+<script src="gov-branches-data.js?v=4" defer></script>
+<script src="app.js?v=3" defer></script>
 </head>
 <body>
 
@@ -25,6 +30,7 @@
   <p style="max-width:800px;text-align:center;">This practice game needs JavaScript enabled.</p>
 </noscript>
 
+<div id="net-status" class="net-status" role="status" hidden></div>
 <div id="toast-container" aria-live="polite" aria-atomic="false"></div>
 
 <h1 id="main-title">AP Practice</h1>
@@ -60,7 +66,7 @@
     <select id="subject-dropdown" style="width:100%;max-width:340px;font-weight:600;color:var(--navy);">
       <option value="APUSH">APUSH</option>
       <option value="APGOV">AP Gov</option>
-      <option value="APGOV_BRANCHES">AP Gov: Interactions Among Branches</option>
+      <option value="APGOV_BRANCHES">AP Gov: 2.3-2.8</option>
       <option value="AFFIX">Prefix &amp; Suffix Practice</option>
     </select>
     <p class="subtle" id="subject-blurb" style="margin-top:var(--sp-2);"></p>
@@ -94,7 +100,7 @@
   </div>
 </section>
 
-<!-- ===================== MULTIPLAYER LOBBY ===================== -->
+<!-- ===================== MULTIPLAYER ENTRY ===================== -->
 <section class="container app-screen" id="screen-mp-lobby" aria-labelledby="mp-lobby-title">
   <h2 id="mp-lobby-title">Multiplayer</h2>
   <p class="subtle">One player hosts and picks the settings; everyone else joins with the room code.</p>
@@ -103,47 +109,57 @@
   <hr class="rule">
 
   <h3>Join a Match</h3>
-  <label class="sr-only" for="join-code-input">Four letter room code</label>
-  <input type="text" class="code-input" id="join-code-input" placeholder="CODE" maxlength="4" autocomplete="off" spellcheck="false">
+  <label class="sr-only" for="join-code-input">Five character room code</label>
+  <input type="text" class="code-input" id="join-code-input" placeholder="CODE" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text">
   <button type="button" class="big-btn secondary" id="join-btn">Join Room</button>
   <p class="status-text" id="join-status-msg" role="status"></p>
   <button type="button" class="big-btn quiet" data-nav="screen-main-menu">Back to Menu</button>
 </section>
 
-<!-- ===================== MULTIPLAYER HOST ===================== -->
-<section class="container app-screen" id="screen-mp-host" aria-labelledby="mp-host-title">
-  <h2 id="mp-host-title">Hosting a Match</h2>
-  <p>Share this code with your friends:</p>
-  <div class="room-code-display" id="room-code" role="status" aria-label="Room code">----</div>
-  <div id="host-settings-target"></div>
-  <span class="error-text" id="host-error" role="alert"></span>
-  <h4 style="text-align:left;margin-top:var(--sp-5);">Players in Room</h4>
-  <div class="player-roster" id="host-roster" role="status"></div>
-  <div class="button-row">
-    <button type="button" class="big-btn" id="start-mp-btn">Start Match</button>
-    <button type="button" class="big-btn danger" data-quit>Cancel Lobby</button>
-  </div>
-</section>
+<!-- ===================== MATCH LOBBY =====================
+     One screen for everyone. The host additionally gets the settings block
+     and the start button; guests get a read-only summary of the same thing. -->
+<section class="container app-screen" id="screen-lobby" aria-labelledby="lobby-title">
+  <h2 id="lobby-title">Match Lobby</h2>
 
-<!-- ===================== MULTIPLAYER JOINED ===================== -->
-<section class="container app-screen" id="screen-mp-join" aria-labelledby="mp-join-title">
-  <h2 id="mp-join-title">Joined Match</h2>
-  <div class="room-code-display" id="joined-room-code"></div>
-  <p class="status-text" style="color:var(--correct);">Connected</p>
-  <h4 style="text-align:left;">Players in Room</h4>
-  <div class="player-roster" id="join-roster" role="status"></div>
-  <p class="subtle">Waiting for the host to choose settings and start the match.</p>
-  <button type="button" class="big-btn danger" data-quit>Leave Match</button>
+  <div class="lobby-code">
+    <span class="field-label">Room code</span>
+    <div class="room-code-display" id="room-code" role="status" aria-label="Room code">-----</div>
+    <div class="lobby-code-actions">
+      <button type="button" class="chip-btn" id="btn-copy-code">Copy code</button>
+      <button type="button" class="chip-btn" id="btn-copy-link">Copy invite link</button>
+    </div>
+  </div>
+
+  <div class="roster-head">
+    <h4>Players</h4>
+    <span class="subtle" id="roster-count"></span>
+  </div>
+  <div class="player-grid" id="lobby-roster" role="status" aria-live="polite"></div>
+
+  <div id="lobby-settings-target" class="host-only"></div>
+
+  <div class="settings-readout" id="lobby-readout" hidden></div>
+  <p class="subtle guest-only" id="lobby-guest-note">Waiting for the host to choose the settings and start the match.</p>
+
+  <span class="error-text" id="lobby-error" role="alert"></span>
+  <div class="button-row">
+    <button type="button" class="big-btn host-only" id="btn-start-match">Start Match</button>
+    <button type="button" class="big-btn danger" data-quit>Leave Match</button>
+  </div>
 </section>
 
 <!-- ===================== QUIZ ===================== -->
 <section class="container app-screen" id="screen-quiz" aria-labelledby="question-text">
   <div id="leaderboard-modal" role="dialog" aria-label="Round standings">
-    <p class="lb-title">Round Complete</p>
+    <p class="lb-title" id="lb-title">Round Complete</p>
     <div class="lb-list" id="lb-list-container"></div>
-    <p style="color:var(--rust);margin-bottom:var(--sp-3);">Next round in <span id="lb-timer">5</span>...</p>
+    <div class="lb-controls">
+      <p class="lb-next">Next question in <span id="lb-timer">8</span>s</p>
+      <button type="button" class="chip-btn host-only" id="btn-host-next">Skip ahead</button>
+    </div>
     <div class="shop-container" id="shop-container">
-      <h4>Powerup Shop</h4>
+      <h4>Powerup Shop <span class="shop-budget" id="shop-budget"></span></h4>
       <div class="shop-grid" id="dynamic-shop-grid"></div>
     </div>
   </div>
@@ -160,7 +176,12 @@
     <span class="chip player-score" id="chip-score">Correct: 0 / 0</span>
     <span class="chip streak" id="chip-streak" data-cold="true">Streak: 0</span>
     <span class="chip players hidden" id="chip-players-connected">Players: 1</span>
+    <span class="chip rank hidden" id="chip-rank">1st</span>
   </div>
+
+  <!-- Multiplayer only: who has locked in an answer so far. Replaces the old
+       blank "waiting for other players" overlay. -->
+  <div class="answer-tracker hidden" id="answer-tracker" aria-live="polite"></div>
 
   <div id="question-meta"></div>
   <h2 class="question-box" id="question-text">Loading question...</h2>
@@ -168,7 +189,7 @@
   <div class="options-grid" id="options-grid" role="group" aria-label="Answer choices"></div>
 
   <div class="feedback-panel hidden" id="feedback-panel" role="status" aria-live="polite"></div>
-  <div class="overlay-msg hidden" id="waiting-msg" role="status">Waiting for other players...</div>
+  <div class="overlay-msg hidden" id="waiting-msg" role="status">Answer locked in.</div>
 
   <div class="quiz-actions">
     <button type="button" class="big-btn hidden" id="btn-next">Next Question</button>
@@ -184,7 +205,7 @@
   <p class="subtle" id="final-summary"></p>
 
   <div class="score-grid" id="final-score-grid"></div>
-  <div class="lb-list hidden" id="final-lb-container"></div>
+  <div class="final-standings hidden" id="final-lb-container" aria-label="Final standings"></div>
 
   <details class="review-block hidden" id="review-block">
     <summary id="review-summary">Review what you missed</summary>

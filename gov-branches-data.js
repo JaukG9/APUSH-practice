@@ -1,10 +1,9 @@
 // =========================================================================
-// AP GOV: INTERACTIONS AMONG BRANCHES - CONTENT MODULE
+// AP GOV: TOPICS 2.3-2.8 - CONTENT MODULE
 // =========================================================================
 // Source of truth: AMSCO United States Government & Politics, AP Edition
-// (2022), Chapters 4-6, book pages 108-187 - Topics 2.2 and 2.3 (Congress),
-// 2.4-2.7 (the Presidency) and 2.8 (the Judiciary), plus the Chapter 4 and
-// Chapter 5 Review key-term lists on pages 133 and 172.
+// (2022), Chapters 4-6, book pages 124-187 - Topic 2.3 (congressional
+// behavior), Topics 2.4-2.7 (the Presidency) and Topic 2.8 (the Judiciary).
 //
 // Two exports:
 //   govBranchesVocab - every key term this mode tests, with the meaning the
@@ -28,97 +27,12 @@
 //     options      - exactly four distinct strings; one equals `answer`
 //                    (the engine shuffles them, so stored order is irrelevant)
 //
-// A note on Topic 2.1: its narrative pages sit just before this excerpt
-// begins, so the few Topic 2.1 terms below (bicameral, advice and consent,
-// and so on) come from the Chapter 4 Review list on page 133, which is
-// inside the source. Every other term is drawn from body text.
+// Ids are not contiguous. They are identity keys, and the gaps are where
+// Topics 2.1 and 2.2 used to sit; reusing a number would collide with the
+// "recently seen" list a returning player already has stored.
 // =========================================================================
 
 const govBranchesVocab = [
-  // --- Congress: Topic 2.1 (Chapter 4 Review key terms, p. 133) ----------
-  { id: "g-bicameral", term: "bicameral", display: "bicameral", branch: "congress", topic: "2.1",
-    meaning: "A legislature divided into two chambers; Article I gives Congress a House and a Senate." },
-  { id: "g-seventeenth", term: "Seventeenth Amendment", display: "Seventeenth Amendment (1913)", branch: "congress", topic: "2.1",
-    meaning: "The amendment that put the election of senators directly in the hands of a state's voters." },
-  { id: "g-advice-consent", term: "advice and consent", display: "advice and consent", branch: "congress", topic: "2.1",
-    meaning: "The Senate's power to approve or reject presidential appointments and treaties; its standing committees hold the confirmation hearings." },
-  { id: "g-purse", term: "power of the purse", display: "power of the purse", branch: "congress", topic: "2.1",
-    meaning: "Congress's control over taxing and spending, an enumerated power the Court refused to let Congress hand to the president." },
-  { id: "g-coalitions", term: "coalitions", display: "coalitions", branch: "congress", topic: "2.1",
-    meaning: "Groups of lawmakers who join together to gather the votes a bill needs." },
-  { id: "g-caucuses", term: "caucuses", display: "caucuses", branch: "congress", topic: "2.1",
-    meaning: "The entire party membership within a house, which meets privately to choose leaders and set party strategy." },
-  { id: "g-enumerated", term: "enumerated powers", display: "enumerated powers", branch: "congress", topic: "2.1",
-    meaning: "Powers written out for Congress in Article I, Section 8, such as taxing, spending, and declaring war." },
-  { id: "g-implied", term: "implied powers", display: "implied powers", branch: "congress", topic: "2.1",
-    meaning: "Powers not listed in Article I but reasonably drawn from the enumerated powers through the necessary and proper clause." },
-  { id: "g-necessary-proper", term: "necessary and proper clause", display: "necessary and proper clause", branch: "congress", topic: "2.1",
-    meaning: "The Article I clause letting Congress make the laws needed to carry out its enumerated powers; the source of implied powers." },
-
-  // --- Congress: Topic 2.2, structures, powers and functions -------------
-  { id: "g-speaker", term: "Speaker of the House", display: "Speaker of the House", branch: "congress", topic: "2.2",
-    meaning: "The only House leadership position named in the Constitution and the de facto leader of the House majority party." },
-  { id: "g-senate-majority-leader", term: "Senate majority leader", display: "Senate majority leader", branch: "congress", topic: "2.2",
-    meaning: "The Senate's chief legislator: first recognized in debate, sets the legislative calendar, and decides which bills reach the floor." },
-  { id: "g-president-of-senate", term: "President of the Senate", display: "President of the Senate", branch: "congress", topic: "2.2",
-    meaning: "The vice president, who presides over the Senate without a vote except to break a tie." },
-  { id: "g-pro-tempore", term: "president pro tempore", display: "president pro tempore", branch: "congress", topic: "2.2",
-    meaning: "A mostly ceremonial post held by the most senior member of the majority party, who presides when the vice president is absent." },
-  { id: "g-whip", term: "whip", display: "whip", branch: "congress", topic: "2.2",
-    meaning: "The deputy party leader in charge of discipline, who tallies votes and pressures members to stay with the party." },
-  { id: "g-rules-committee", term: "Rules Committee", display: "Rules Committee", branch: "congress", topic: "2.2",
-    meaning: "The House committee that acts as a traffic cop to the floor, assigning bills to committees, setting the terms of debate, and scheduling votes." },
-  { id: "g-ways-means", term: "Ways and Means Committee", display: "Ways and Means Committee", branch: "congress", topic: "2.2",
-    meaning: "A committee exclusive to the House that determines tax policy." },
-  { id: "g-standing-committee", term: "standing committees", display: "standing committees", branch: "congress", topic: "2.2",
-    meaning: "Permanent committees focused on a particular policy area, where most of Congress's work gets done." },
-  { id: "g-joint-committee", term: "joint committees", display: "joint committees", branch: "congress", topic: "2.2",
-    meaning: "Permanent committees uniting House and Senate members to handle a long-term program, such as the Library of Congress." },
-  { id: "g-select-committee", term: "select committees", display: "select committees", branch: "congress", topic: "2.2",
-    meaning: "Temporary committees created for a limited time to run a particular study or investigation." },
-  { id: "g-conference-committee", term: "conference committees", display: "conference committees", branch: "congress", topic: "2.2",
-    meaning: "Temporary committees of members from both houses formed to reconcile differing versions of the same bill." },
-  { id: "g-committee-of-whole", term: "Committee of the Whole", display: "Committee of the Whole", branch: "congress", topic: "2.2",
-    meaning: "A House-only state of operation with relaxed rules where only 100 members are needed to act and territorial delegates may vote." },
-  { id: "g-discharge-petition", term: "discharge petitions", display: "discharge petitions", branch: "congress", topic: "2.2",
-    meaning: "A petition signed by a simple majority of the House, 218 members, that forces a bill out of a reluctant committee and onto the floor." },
-  { id: "g-oversight", term: "congressional oversight", display: "congressional oversight", branch: "congress", topic: "2.2",
-    meaning: "Committee review of how executive agencies carry out the laws and money Congress gave them, often through hearings and testimony." },
-  { id: "g-markup", term: "markup", display: "markup", branch: "congress", topic: "2.2",
-    meaning: "The committee stage, between hearings and reporting out, where members amend a bill until they are satisfied with it." },
-  { id: "g-pigeonhole", term: "pigeonhole", display: "pigeonhole", branch: "congress", topic: "2.2",
-    meaning: "A committee chair's decision to set a bill aside and not move it forward for debate." },
-  { id: "g-filibuster", term: "filibuster", display: "filibuster", branch: "congress", topic: "2.2",
-    meaning: "A Senate tactic, not a constitutional power, of speaking at extreme length to stall or kill a bill, block a nomination, or run out the clock." },
-  { id: "g-cloture", term: "cloture rule", display: "cloture rule", branch: "congress", topic: "2.2",
-    meaning: "Senate Rule 22, which ends debate on a bill; originally a two-thirds vote, lowered in 1975 to three-fifths, or 60 senators." },
-  { id: "g-germane", term: "germane", display: "germane", branch: "congress", topic: "2.2",
-    meaning: "Directly related to the bill under consideration. House amendments must be germane; Senate amendments need not be." },
-  { id: "g-rider", term: "rider", display: "rider", branch: "congress", topic: "2.2",
-    meaning: "A nongermane amendment attached to a bill, often to benefit a member's own agenda or to improve the bill's chances." },
-  { id: "g-hold", term: "hold", display: "hold", branch: "congress", topic: "2.2",
-    meaning: "A senator's move to stall a bill or a presidential appointment, frequently used as a bargaining tool." },
-  { id: "g-unanimous-consent", term: "unanimous consent", display: "unanimous consent", branch: "congress", topic: "2.2",
-    meaning: "Approval by every senator, requested before the Senate acts; a single objection stalls the motion." },
-  { id: "g-omnibus", term: "omnibus bill", display: "omnibus bill", branch: "congress", topic: "2.2",
-    meaning: "A bill covering multiple areas of law or programs; a long string of riders earns it the nickname Christmas Tree bill." },
-  { id: "g-pork", term: "pork-barrel spending", display: "pork-barrel spending", branch: "congress", topic: "2.2",
-    meaning: "Funds earmarked for specific projects in a legislator's own district or state, such as the Bridge to Nowhere." },
-  { id: "g-logrolling", term: "logrolling", display: "logrolling", branch: "congress", topic: "2.2",
-    meaning: "Trading votes: backing another member's bill in exchange for their support on your own." },
-  { id: "g-sponsor", term: "sponsor", display: "sponsor", branch: "congress", topic: "2.2",
-    meaning: "The member who introduces a bill and typically assumes authorship of it." },
-  { id: "g-deficit", term: "deficit", display: "deficit", branch: "congress", topic: "2.2",
-    meaning: "The gap in a single year between what the government spends and the revenue it takes in; borrowing to cover it adds to the national debt." },
-  { id: "g-mandatory", term: "mandatory spending", display: "mandatory spending", branch: "congress", topic: "2.2",
-    meaning: "Payment required by law for programs such as Social Security, Medicare and Medicaid, more than 60 percent of the 2019 budget." },
-  { id: "g-discretionary", term: "discretionary spending", display: "discretionary spending", branch: "congress", topic: "2.2",
-    meaning: "The roughly 38 percent of the 2019 budget that congressional committees debate and divide up each year." },
-  { id: "g-omb", term: "Office of Management and Budget", display: "Office of Management and Budget (OMB)", branch: "congress", topic: "2.2",
-    meaning: "The president's budgeting arm, which assembles the annual budget proposal that starts the process." },
-  { id: "g-cbo", term: "Congressional Budget Office", display: "Congressional Budget Office (CBO)", branch: "congress", topic: "2.2",
-    meaning: "A congressional agency of nonpartisan accountants that analyzes the budget and serves as a check on the president's OMB." },
-
   // --- Congress: Topic 2.3, congressional behavior -----------------------
   { id: "g-gridlock", term: "gridlock", display: "gridlock", branch: "congress", topic: "2.3",
     meaning: "The congestion of opposing forces that keeps ideas from moving forward, within a chamber or between Congress and the president." },
@@ -172,6 +86,8 @@ const govBranchesVocab = [
     meaning: "The president's claimed right to withhold internal advice and decision making from the other branches; limited by U.S. v. Nixon (1974)." },
 
   // --- The Presidency: Topic 2.5, checks on the presidency ---------------
+  { id: "g-advice-consent", term: "advice and consent", display: "advice and consent", branch: "presidency", topic: "2.5",
+    meaning: "The Senate's power to approve or reject presidential appointments and treaties, and one of the framers' express limits on the executive." },
   { id: "g-cabinet", term: "Cabinet", display: "Cabinet", branch: "presidency", topic: "2.5",
     meaning: "The 15 department secretaries, plus anyone a president adds, who advise the president and run the executive departments." },
   { id: "g-chief-of-staff", term: "chief of staff", display: "chief of staff", branch: "presidency", topic: "2.5",
@@ -244,89 +160,9 @@ const govBranchesVocab = [
 
 const govBranchesBank = [
   // =======================================================================
-  // CONGRESS - Topics 2.1, 2.2, 2.3 (AMSCO pp. 108-132)
+  // CONGRESS - Topic 2.3, congressional behavior (AMSCO pp. 124-132)
   // =======================================================================
 
-  {
-    id: "gb001", term: "Speaker of the House", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "easy",
-    question: "Which congressional leadership post is the only one in the House that the Constitution itself names?",
-    options: ["Speaker of the House", "House majority leader", "House majority whip", "Chair of the Rules Committee"],
-    answer: "Speaker of the House",
-    explanation: "The Constitution names only the Speaker, the President of the Senate and the president pro tempore. Every other post, including the floor leaders and whips, was invented later by the chambers and the parties."
-  },
-  {
-    id: "gb002", term: "Senate majority leader", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "easy",
-    question: "Who decides which bills actually reach the Senate floor for debate?",
-    options: ["The Senate majority leader", "The president pro tempore", "The vice president, as President of the Senate", "The Senate Rules Committee"],
-    answer: "The Senate majority leader",
-    explanation: "The majority leader is the Senate's real chief legislator: first recognized in debate, in charge of the legislative calendar, and the one who decides which bills get floor time. The pro tem's duties are largely ceremonial."
-  },
-  {
-    id: "gb003", term: "President of the Senate", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "easy",
-    question: "Under what circumstance does the vice president cast a vote in the Senate?",
-    options: ["Only to break a tie", "On any bill the president has publicly endorsed", "On procedural motions but not on final passage", "Whenever the vice president is presiding over debate"],
-    answer: "Only to break a tie",
-    explanation: "The Constitution makes the vice president the nonvoting President of the Senate, with one exception. That exception decided a Cabinet seat in 2017, when Vice President Pence broke a 50-50 tie to confirm Betsy DeVos."
-  },
-  {
-    id: "gb004", term: "whip", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "easy",
-    question: "A party's whip in either chamber is mainly responsible for",
-    options: ["counting likely votes and keeping members in line with the party", "assigning members to standing committees", "setting the chamber's legislative calendar", "leading the party's side of floor debate"],
-    answer: "counting likely votes and keeping members in line with the party",
-    explanation: "The whip sits just below the floor leader and handles party discipline, tallying votes so leaders know when to schedule one and pressuring members who are wavering. Leading debate is the floor leader's job."
-  },
-  {
-    id: "gb005", term: "sponsor", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "easy",
-    question: "The member of Congress who introduces a bill and is generally treated as its author is called its",
-    options: ["sponsor", "whip", "floor manager", "ranking member"],
-    answer: "sponsor",
-    explanation: "The sponsor introduces the bill and it is numbered on the spot, starting at H.R.1 or S.1 each Congress. In practice staffers, lobbyists or White House liaisons often draft the text, but only a member can introduce it."
-  },
-  {
-    id: "gb006", term: "Ways and Means Committee", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "easy",
-    question: "Which committee, found only in the House, writes the first draft of federal tax policy?",
-    options: ["The Ways and Means Committee", "The Appropriations Committee", "The Rules Committee", "The Finance Committee"],
-    answer: "The Ways and Means Committee",
-    explanation: "Ways and Means is exclusive to the House and is first to put details on any proposal to raise or lower income taxes. Appropriations exists in both chambers and divides money up; Finance is the Senate's spending and budget committee."
-  },
-  {
-    id: "gb007", term: "conference committees", branch: "congress", topic: "2.2",
-    questionType: "scenario", difficulty: "easy",
-    question: "The House and the Senate have each passed their own slightly different version of the same bill. What happens next?",
-    options: ["A committee of members from both houses meets to produce one common version", "The House version prevails, since spending bills begin there", "The bill goes to the president, who chooses between the two versions", "The Rules Committee merges the two texts and sends the result to the president"],
-    answer: "A committee of members from both houses meets to produce one common version",
-    explanation: "That is a conference committee, formed temporarily to iron out the differences in a markup session. The compromise draft then has to pass both houses again before it can reach the president's desk."
-  },
-  {
-    id: "gb008", term: "filibuster", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "easy",
-    question: "Which of the following best describes a filibuster?",
-    options: ["A senator holding the floor at length to stall or kill a measure", "A House rule limiting each member to one hour of debate", "A constitutional power the framers gave the Senate to check the House", "A committee chair's refusal to schedule a bill for a hearing"],
-    answer: "A senator holding the floor at length to stall or kill a measure",
-    explanation: "The filibuster is a Senate procedure, not a constitutional power, and any senator can invoke it to wear down opponents, block a nomination, or let a deadline run out. The House's strict time limits make it impossible there."
-  },
-  {
-    id: "gb009", term: "bicameral", branch: "congress", topic: "2.1",
-    questionType: "definition", difficulty: "easy",
-    question: "Calling Congress bicameral means that it",
-    options: ["is split into two chambers that must both agree before a bill can become law", "holds elections for part of its membership every two years", "shares its lawmaking power with the state legislatures", "can override a presidential veto with a two-thirds vote"],
-    answer: "is split into two chambers that must both agree before a bill can become law",
-    explanation: "Article I divides the legislature into a House and a Senate, and the framers said each would set its own rules as further assurance of a bicameral system. Because a bill must clear both, disagreement is built into every law."
-  },
-  {
-    id: "gb010", term: "standing committees", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "easy",
-    question: "Most of the actual work of Congress, including hearings, drafting and the first vote on a bill, happens in",
-    options: ["standing committees", "the Committee of the Whole", "conference committees", "party caucuses"],
-    answer: "standing committees",
-    explanation: "Standing committees are permanent and organized by policy area, which lets members build real expertise. A bill has to clear one by majority vote before the full chamber ever sees it."
-  },
   {
     id: "gb011", term: "gerrymandering", branch: "congress", topic: "2.3",
     questionType: "definition", difficulty: "easy",
@@ -334,150 +170,6 @@ const govBranchesBank = [
     options: ["drawing district lines in illogical shapes to give one party an advantage", "redrawing districts every ten years in response to the census", "shifting a state's electoral votes toward the national popular-vote winner", "a state legislature's refusal to redraw districts at all"],
     answer: "drawing district lines in illogical shapes to give one party an advantage",
     explanation: "Redistricting after the census is the routine, constitutionally required part. Gerrymandering is what happens when the party controlling a state legislature bends those lines to manufacture safe seats, as the 1812 Massachusetts salamander did."
-  },
-  {
-    id: "gb012", term: "cloture rule", branch: "congress", topic: "2.2",
-    questionType: "compare", difficulty: "medium",
-    question: "Senate debate on a bill has dragged on for days and the majority wants to vote. What does it take to cut debate off today?",
-    options: ["A cloture motion supported by 60 of the 100 senators", "A simple majority of the senators present and voting", "Two-thirds of the Senate, as Rule 22 originally required", "Unanimous consent from every senator on the floor"],
-    answer: "A cloture motion supported by 60 of the 100 senators",
-    explanation: "Rule 22 created cloture in 1917, after a filibuster blocked Woodrow Wilson's plan to arm merchant ships. It first took two-thirds; the Senate lowered the bar to three-fifths, or 60 votes, in 1975."
-  },
-  {
-    id: "gb013", term: "germane", branch: "congress", topic: "2.2",
-    questionType: "compare", difficulty: "medium",
-    question: "A senator wants to attach an amendment about farm subsidies to a bill on airport security. Compared with a representative attempting the same thing, the senator",
-    options: ["may do it, because Senate amendments do not have to be germane", "may do it only if the Rules Committee grants a waiver", "may not do it, because both chambers require amendments to be germane", "may do it only while the chamber sits as the Committee of the Whole"],
-    answer: "may do it, because Senate amendments do not have to be germane",
-    explanation: "Germane means directly related to the bill at hand. The House requires it and the Senate does not, which is precisely why nongermane amendments, called riders, are a Senate specialty."
-  },
-  {
-    id: "gb014", term: "rider", branch: "congress", topic: "2.2",
-    questionType: "scenario", difficulty: "medium",
-    question: "Buried in a bill meant to buy body armor for troops is a provision spending $400 million on a bridge serving about 50 residents. That provision is best labeled a",
-    options: ["rider", "signing statement", "discharge petition", "cloture motion"],
-    answer: "rider",
-    explanation: "A rider is a nongermane amendment hitched to a bill that is moving anyway. This one was Senator Ted Stevens's project, and critics dubbed it the Bridge to Nowhere."
-  },
-  {
-    id: "gb015", term: "pork-barrel spending", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "medium",
-    question: "Federal money earmarked for a highway repair, museum or research grant inside one lawmaker's own district is known as",
-    options: ["pork-barrel spending", "mandatory spending", "discretionary spending", "logrolling"],
-    answer: "pork-barrel spending",
-    explanation: "Pork is district-specific spending members bring home to constituents. A rider is often the vehicle that delivers it, so the two terms travel together, but the rider is the vehicle and the pork is the cargo."
-  },
-  {
-    id: "gb016", term: "logrolling", branch: "congress", topic: "2.2",
-    questionType: "scenario", difficulty: "medium",
-    question: "Two representatives agree that each will vote for the other's bill, though neither cares much about the other's issue. This is an example of",
-    options: ["logrolling", "unanimous consent", "building a coalition", "marking up a bill"],
-    answer: "logrolling",
-    explanation: "Logrolling is vote trading across different bills: back mine and I will back yours. A coalition is a related but different thing, a group of members lining up behind the same bill."
-  },
-  {
-    id: "gb017", term: "omnibus bill", branch: "congress", topic: "2.2",
-    questionType: "scenario", difficulty: "medium",
-    question: "A single bill runs hundreds of pages, funds a dozen unrelated programs, and has collected riders from members of both parties. What is it?",
-    options: ["An omnibus bill", "A joint resolution", "A discharge petition", "A conference report"],
-    answer: "An omnibus bill",
-    explanation: "An omnibus bill covers multiple areas of law at once. Because so many members hang their own projects on it, it earns the nickname Christmas Tree bill, and it becomes hard to vote against, since killing it kills everything inside."
-  },
-  {
-    id: "gb018", term: "hold", branch: "congress", topic: "2.2",
-    questionType: "scenario", difficulty: "medium",
-    question: "A senator quietly signals that she will object to any action on a pending nomination until she gets a concession from leadership. She has placed a",
-    options: ["hold", "veto", "pigeonhole", "cloture motion"],
-    answer: "hold",
-    explanation: "A hold stalls a bill or a nomination. Because the Senate moves so much routine business by unanimous consent, one senator's objection can stop the machinery, which makes a hold a genuine bargaining chip."
-  },
-  {
-    id: "gb019", term: "unanimous consent", branch: "congress", topic: "2.2",
-    questionType: "application", difficulty: "medium",
-    question: "Before the Senate takes up most routine business, the presiding officer asks for unanimous consent. What happens if a single senator objects?",
-    options: ["The motion is put on hold or at least stalled for discussion", "The objection is recorded and the Senate proceeds anyway", "The Senate must immediately vote on cloture", "The bill is returned to committee for a new markup"],
-    answer: "The motion is put on hold or at least stalled for discussion",
-    explanation: "Unanimous consent means exactly that, the approval of all senators. One objection is enough, which is a large part of why individual senators have more leverage than individual representatives."
-  },
-  {
-    id: "gb020", term: "discharge petitions", branch: "congress", topic: "2.2",
-    questionType: "application", difficulty: "medium",
-    question: "A bill with broad support is sitting in a committee whose chair refuses to move it. What lets the full House get at it anyway?",
-    options: ["A discharge petition signed by 218 members", "A cloture motion supported by 60 members", "A hold placed on the committee by the Speaker", "A conference committee convened by the majority leader"],
-    answer: "A discharge petition signed by 218 members",
-    explanation: "The discharge petition takes a simple majority of the House. It exists so that a reluctant chair or committee cannot bottle up something a majority of the chamber wants to debate, and it is a way around leadership as well."
-  },
-  {
-    id: "gb021", term: "Rules Committee", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "medium",
-    question: "Why is the House Rules Committee often described as a traffic cop?",
-    options: ["Nothing reaches the House floor unless it sets the terms and the schedule", "It investigates ethics complaints brought against members", "It decides which senators may speak during a conference", "It certifies the results of contested House elections"],
-    answer: "Nothing reaches the House floor unless it sets the terms and the schedule",
-    explanation: "The Rules Committee assigns bills to standing committees, writes the rule governing debate, and decides when votes happen. It generally reflects the will of House leadership, which makes it one of the most powerful committees in Congress."
-  },
-  {
-    id: "gb022", term: "Committee of the Whole", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "medium",
-    question: "Which statement about the House operating as the Committee of the Whole is accurate?",
-    options: ["Only 100 members need be present for it to act, and the usual debate rules are relaxed", "Senators may join House members in it to debate a shared bill", "Its votes count as final passage of the bill", "It is chaired by the president pro tempore"],
-    answer: "Only 100 members need be present for it to act, and the usual debate rules are relaxed",
-    explanation: "It is less a committee than a looser mode of operation, and it also lets the normally nonvoting delegates from Puerto Rico, Guam and other territories vote. When it finishes it rises and reports, and the formal rules return for the real vote."
-  },
-  {
-    id: "gb023", term: "select committees", branch: "congress", topic: "2.2",
-    questionType: "compare", difficulty: "medium",
-    question: "Congress creates a panel to investigate one particular incident, with no expectation that it will outlive the inquiry. What kind of committee is that?",
-    options: ["A select committee", "A standing committee", "A joint committee", "A conference committee"],
-    answer: "A select committee",
-    explanation: "Select or special committees are established for a limited time to perform a particular study or investigation, like the panel on the 2012 attack in Benghazi. Standing committees are permanent, and conference committees exist only to reconcile two versions of one bill."
-  },
-  {
-    id: "gb024", term: "joint committees", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "medium",
-    question: "The Joint Committee on Taxation and the committee that manages the Library of Congress are examples of",
-    options: ["permanent committees drawing members from both the House and the Senate", "temporary panels that dissolve at the end of each Congress", "House committees whose reports the Senate must accept", "subcommittees of the two Appropriations Committees"],
-    answer: "permanent committees drawing members from both the House and the Senate",
-    explanation: "Joint committees unite House and Senate members around a long-term issue or program. Their work is mostly routine management and research rather than moving legislation to the floor."
-  },
-  {
-    id: "gb025", term: "markup", branch: "congress", topic: "2.2",
-    questionType: "process", difficulty: "medium",
-    question: "In what order does a bill pass through the three stages of committee work?",
-    options: ["Hearings, then markup, then reporting out", "Markup, then hearings, then reporting out", "Reporting out, then hearings, then markup", "Hearings, then reporting out, then markup"],
-    answer: "Hearings, then markup, then reporting out",
-    explanation: "Committees take testimony first, then amend the text line by line in markup, then vote to report the bill out to the floor. The ratio of yeas to nays in that committee vote often previews how the bill will fare in the full chamber."
-  },
-  {
-    id: "gb026", term: "congressional oversight", branch: "congress", topic: "2.2",
-    questionType: "application", difficulty: "medium",
-    question: "A House committee calls the head of the TSA to testify about how the agency has been spending the money Congress gave it. This is an exercise of",
-    options: ["congressional oversight", "advice and consent", "judicial review", "the power of the purse"],
-    answer: "congressional oversight",
-    explanation: "Oversight is Congress checking that an agency is carrying out a program the way the law defined it. Advice and consent covers appointments and treaties; the power of the purse is the funding decision itself, not the review of how the money was used."
-  },
-  {
-    id: "gb027", term: "mandatory spending", branch: "congress", topic: "2.2",
-    questionType: "compare", difficulty: "medium",
-    question: "Social Security and Medicare payments go out each year without Congress voting on the amount, while highway grants and defense procurement do not. The difference is that the first two are",
-    options: ["mandatory spending, fixed by laws already on the books", "discretionary spending, which committees shield from cuts", "pork-barrel spending, earmarked by individual members", "interest on the national debt, which must be paid first"],
-    answer: "mandatory spending, fixed by laws already on the books",
-    explanation: "Earlier laws set who is eligible and how much they receive, so the payments happen automatically. Mandatory spending was more than 60 percent of the 2019 budget; discretionary spending, the part committees argue over each year, was about 38 percent."
-  },
-  {
-    id: "gb028", term: "Congressional Budget Office", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "medium",
-    question: "Congress created a staff of nonpartisan accountants specifically to analyze the president's budget proposal. That body is the",
-    options: ["Congressional Budget Office", "Office of Management and Budget", "Council of Economic Advisers", "Senate Finance Committee"],
-    answer: "Congressional Budget Office",
-    explanation: "The CBO is Congress's own team of experts and exists to check the president's OMB, which assembles the proposal. The Council of Economic Advisers sits inside the Executive Office of the President, on the other side of that argument."
-  },
-  {
-    id: "gb029", term: "power of the purse", branch: "congress", topic: "2.1",
-    questionType: "case", difficulty: "medium",
-    question: "When the Supreme Court struck down the line-item veto in 1998, which congressional power was it protecting?",
-    options: ["The power of the purse", "The power of advice and consent", "The power to declare war", "The power of impeachment"],
-    answer: "The power of the purse",
-    explanation: "New York City argued that the 1996 law shifted Congress's enumerated control over spending to the president. The Court agreed in Clinton v. City of New York: moving that power would require a constitutional amendment, not a statute."
   },
   {
     id: "gb030", term: "gridlock", branch: "congress", topic: "2.3",
@@ -536,60 +228,12 @@ const govBranchesBank = [
     explanation: "Gomillion v. Lightfoot struck down Tuskegee's 28-sided border because it pushed Black neighborhoods outside the city, a voting-rights violation. Shaw v. Reno then found that a district defined only by race offended the equal protection clause."
   },
   {
-    id: "gb037", term: "advice and consent", branch: "congress", topic: "2.1",
-    questionType: "application", difficulty: "medium",
-    question: "A nominee for secretary of defense testifies before the Senate Armed Services Committee before the full Senate votes. This process belongs to the Senate's power of",
-    options: ["advice and consent", "congressional oversight", "impeachment", "unanimous consent"],
-    answer: "advice and consent",
-    explanation: "Advice and consent is the Senate's constitutional role in approving appointments and treaties, and standing committees run the confirmation hearings. Oversight is the separate job of watching agencies once they are already operating."
-  },
-  {
-    id: "gb038", term: "Seventeenth Amendment", branch: "congress", topic: "2.1",
-    questionType: "definition", difficulty: "medium",
-    question: "Before the Seventeenth Amendment (1913), how were United States senators chosen?",
-    options: ["By their state legislatures", "By the governor of each state", "By that state's delegation in the House", "By statewide popular vote, exactly as today"],
-    answer: "By their state legislatures",
-    explanation: "The amendment moved the choice to the state's voters directly. That change makes a senator answerable to an entire state's electorate rather than to the party leaders holding a statehouse majority."
-  },
-  {
     id: "gb039", term: "swing district", branch: "congress", topic: "2.3",
     questionType: "definition", difficulty: "medium",
     question: "A district where elections are consistently close, so that either party might win it, is called",
     options: ["a swing or marginal seat", "a safe seat", "a majority-minority district", "an at-large district"],
     answer: "a swing or marginal seat",
     explanation: "A safe seat is one a party wins by more than 55 percent. With each party holding more than 180 safe seats, only about 75 marginal seats are genuinely up for grabs in a given election."
-  },
-  {
-    id: "gb040", term: "Office of Management and Budget", branch: "congress", topic: "2.2",
-    questionType: "process", difficulty: "medium",
-    question: "The long federal budget process begins each year with",
-    options: ["a budget proposal from the executive branch, assembled by the OMB", "an appropriations bill drafted by the House Rules Committee", "a revenue estimate published by the Congressional Budget Office", "a joint resolution setting spending caps for the coming decade"],
-    answer: "a budget proposal from the executive branch, assembled by the OMB",
-    explanation: "The OMB director is essentially the president's accountant, weighing agency requests against the president's fiscal philosophy. Congress then sets overall revenue and spending levels, and its appropriations committees divide the money up."
-  },
-  {
-    id: "gb041", term: "pigeonhole", branch: "congress", topic: "2.2",
-    questionType: "application", difficulty: "hard",
-    question: "A committee chair pigeonholes a bill. Which statement about what follows is accurate?",
-    options: ["The bill stalls unless a majority of the chamber forces it out", "The bill automatically reaches the floor after thirty days", "The Speaker may sign the bill into law without a floor vote", "The bill moves to the other chamber for consideration instead"],
-    answer: "The bill stalls unless a majority of the chamber forces it out",
-    explanation: "Pigeonholing means the chair simply declines to move a bill forward, perhaps permanently. The regular escape is a discharge petition needing 218 signatures, a deliberate check on one committee blocking what the whole House wants."
-  },
-  {
-    id: "gb042", term: "deficit", branch: "congress", topic: "2.2",
-    questionType: "compare", difficulty: "hard",
-    question: "In fiscal 2019 the government expected about $3.4 trillion in revenue and planned to spend about $4.4 trillion. That roughly $1 trillion gap is",
-    options: ["the year's deficit, which is borrowed and added to the national debt", "the national debt, which stood at about $1 trillion that year", "discretionary spending that Congress had not yet allocated", "the interest owed on money borrowed in earlier years"],
-    answer: "the year's deficit, which is borrowed and added to the national debt",
-    explanation: "A deficit is one year's shortfall; the debt is every past deficit piled up, about $20 trillion at the time. Interest on that debt is yet another line, more than $400 billion in 2020, roughly a tenth of the whole budget."
-  },
-  {
-    id: "gb043", term: "necessary and proper clause", branch: "congress", topic: "2.1",
-    questionType: "compare", difficulty: "hard",
-    question: "Congress has no listed power to create a national bank, yet it has done so by reasoning from its listed powers to tax, borrow and regulate commerce. Which clause makes that reasoning possible?",
-    options: ["The necessary and proper clause", "The supremacy clause", "The full faith and credit clause", "The equal protection clause"],
-    answer: "The necessary and proper clause",
-    explanation: "Enumerated powers are the ones written into Article I, Section 8. The necessary and proper clause lets Congress pass what it needs to carry those out, and the powers that follow from it are called implied powers."
   },
   {
     id: "gb044", term: "swing district", branch: "congress", topic: "2.3",
@@ -631,70 +275,94 @@ const govBranchesBank = [
     answer: "One person-one vote, since a minority of voters held a majority of voting power",
     explanation: "Tennessee had not redrawn its 95 districts since the 1900 census while its cities grew and rural areas did not. The result was minority rule, which is why Baker is remembered for establishing that each person's vote must carry equal weight."
   },
-  {
-    id: "gb049", term: "caucuses", branch: "congress", topic: "2.1",
-    questionType: "process", difficulty: "hard",
-    question: "Days before a new Congress opens, the four party caucuses meet privately. What are they doing, and what happens when the chamber convenes?",
-    options: ["Choosing their leadership candidates, which the chamber then ratifies in a party-line vote", "Drafting the chamber's rules, which the Supreme Court then reviews", "Assigning bills to committees, which the Rules Committee then schedules", "Electing committee chairs, whose names the president then confirms"],
-    answer: "Choosing their leadership candidates, which the chamber then ratifies in a party-line vote",
-    explanation: "A caucus is the entire party membership within a house. The private meeting settles who the party will back for Speaker and the other posts, so the public vote that follows is essentially a formality decided along party lines."
-  },
-  {
-    id: "gb050", term: "discretionary spending", branch: "congress", topic: "2.2",
-    questionType: "application", difficulty: "hard",
-    question: "Human resources spending grew from about 30 percent of federal outlays in 1950 to about 70 percent by 2020. The text says this trend squeezes the budget because that growth must be offset by",
-    options: ["cutting discretionary spending, raising revenue, or borrowing more", "reducing the number of standing committees that review spending", "shifting mandatory programs to the states for administration", "lowering the interest rate the government pays on the debt"],
-    answer: "cutting discretionary spending, raising revenue, or borrowing more",
-    explanation: "Most of that category is mandatory, so it is not up for annual negotiation. Conservatives generally argue for trimming the social programs behind it, and liberals generally argue for higher taxes on the wealthy. That argument is the budget fight."
-  },
-  {
-    id: "gb119", term: "enumerated powers", branch: "congress", topic: "2.1",
-    questionType: "compare", difficulty: "medium",
-    question: "Which of the following is an enumerated power of Congress?",
-    options: ["Declaring war", "Interpreting the Constitution", "Issuing executive orders", "Negotiating a treaty with another nation"],
-    answer: "Declaring war",
-    explanation: "Enumerated powers are the ones Article I, Section 8 spells out, among them taxing, spending and declaring war. Interpreting the Constitution belongs to the courts, while executive orders and treaty negotiation belong to the president."
-  },
-  {
-    id: "gb120", term: "implied powers", branch: "congress", topic: "2.1",
-    questionType: "compare", difficulty: "hard",
-    question: "What is the relationship between Congress's enumerated powers and its implied powers?",
-    options: ["Implied powers are drawn from the enumerated ones by way of the necessary and proper clause", "Implied powers are listed in Article I alongside the enumerated ones", "Implied powers belong to the states under the Tenth Amendment", "Implied powers are delegated to Congress by the president"],
-    answer: "Implied powers are drawn from the enumerated ones by way of the necessary and proper clause",
-    explanation: "Article I, Section 8 lists the enumerated powers and then closes with the necessary and proper clause. Anything Congress can reasonably argue it needs in order to carry out a listed power is an implied power, which is how the list has stretched so far past its own words."
-  },
-  {
-    id: "gb121", term: "president pro tempore", branch: "congress", topic: "2.2",
-    questionType: "compare", difficulty: "medium",
-    question: "Which description of the Senate's president pro tempore is accurate?",
-    options: ["A largely ceremonial post held by the most senior member of the majority party", "The Senate's chief legislator, who controls the calendar", "The vice president, whenever presiding over the Senate", "The senior senator of the minority party, who leads the opposition"],
-    answer: "A largely ceremonial post held by the most senior member of the majority party",
-    explanation: "The pro tem presides when the vice president is absent, signs legislation, and swears in new senators. Real legislative power sits with the majority leader, even though the Constitution names the pro tem and not the majority leader."
-  },
-  {
-    id: "gb122", term: "coalitions", branch: "congress", topic: "2.1",
-    questionType: "application", difficulty: "medium",
-    question: "A bill is short of the votes it needs, so its sponsor recruits members from both parties, each drawn by a different part of the bill, until a majority forms. That bloc is best called",
-    options: ["a coalition", "a caucus", "a conference committee", "a select committee"],
-    answer: "a coalition",
-    explanation: "A coalition is a group of lawmakers joining together to gather the votes a bill needs. A caucus is a different thing: the entire party membership within one chamber, which meets to choose leaders and set strategy."
-  },
 
   {
-    id: "gb123", term: "deficit", branch: "congress", topic: "2.2",
-    questionType: "definition", difficulty: "easy",
-    question: "The gap between what the federal government spends in a single year and the revenue it collects that year is called the",
-    options: ["deficit", "national debt", "surplus", "mandatory spending"],
-    answer: "deficit",
-    explanation: "The government borrows to cover a deficit, and each year's borrowing is added to the national debt, which is the running total. A surplus is the opposite situation, revenue exceeding spending."
+    id: "gb130", term: "delegate model", branch: "congress", topic: "2.3",
+    questionType: "compare", difficulty: "easy",
+    question: "Two lawmakers face the same unpopular bill. One votes the way her district wants; the other votes his own conscience. Which models are they using?",
+    options: ["The first is a delegate, the second a trustee", "The first is a trustee, the second a delegate", "Both are following the politico model", "Both are following the delegate model"],
+    answer: "The first is a delegate, the second a trustee",
+    explanation: "A delegate acts as the constituency's agent and mirrors its will, which the text says is most common in the House. A trustee is entrusted to use their own judgment regardless, an approach more common in the Senate."
   },
   {
-    id: "gb124", term: "filibuster", branch: "congress", topic: "2.2",
+    id: "gb131", term: "swing district", branch: "congress", topic: "2.3",
+    questionType: "definition", difficulty: "easy",
+    question: "A district a party consistently wins by more than 55 percent of the vote is known as",
+    options: ["a safe seat", "a swing district", "a marginal seat", "a majority-minority district"],
+    answer: "a safe seat",
+    explanation: "Safe seats are the opposite of swing districts, which the text also calls marginal seats. Each party now holds more than 180 safe seats, which leaves only about 75 genuinely competitive ones."
+  },
+  {
+    id: "gb132", term: "divided government", branch: "congress", topic: "2.3",
+    questionType: "definition", difficulty: "easy",
+    question: "Government is described as divided when",
+    options: ["the president is of one party and the House and/or Senate is controlled by the other", "the House and the Senate are controlled by different parties", "no party holds a majority in either chamber", "the Supreme Court is split evenly between the parties"],
+    answer: "the president is of one party and the House and/or Senate is controlled by the other",
+    explanation: "The split that matters here is between the branches, not within Congress. Divided government fuels partisan gridlock, and the text points to judicial nominations as the place it bites hardest."
+  },
+  {
+    id: "gb133", term: "gerrymandering", branch: "congress", topic: "2.3",
+    questionType: "process", difficulty: "easy",
+    question: "How often are congressional districts redrawn, and what triggers the redrawing?",
+    options: ["Every ten years, following the constitutionally required census", "Every two years, as each new Congress is seated", "Every four years, with each presidential election", "Whenever the majority party in Congress votes to redraw them"],
+    answer: "Every ten years, following the constitutionally required census",
+    explanation: "Population shifts between censuses, so the map has to follow. State legislatures usually run the process, and because the majority party there normally controls the new statewide map, a routine housekeeping task turns into a partisan fight."
+  },
+  {
+    id: "gb134", term: "one person-one vote", branch: "congress", topic: "2.3",
+    questionType: "definition", difficulty: "easy",
+    question: "The \"one person-one vote\" principle holds that",
+    options: ["each person's vote must carry roughly equal weight", "each citizen may cast only one ballot per election", "each state must receive an equal number of House seats", "each district must contain voters of only one political party"],
+    answer: "each person's vote must carry roughly equal weight",
+    explanation: "The principle is about the weight of a vote, not the number of ballots. In the Tennessee districts behind Baker v. Carr, some voters had a twentieth of the voting power of others, and that disparity is what the phrase was coined against."
+  },
+  {
+    id: "gb135", term: "gridlock", branch: "congress", topic: "2.3",
     questionType: "compare", difficulty: "easy",
-    question: "In which chamber may a member keep talking indefinitely unless the chamber formally cuts debate off?",
-    options: ["The Senate", "The House", "Both chambers equally", "Neither; both limit every member to one hour"],
-    answer: "The Senate",
-    explanation: "The smaller Senate is far less hierarchical and puts few restrictions on debate, which is what makes the filibuster possible. In the House only the Speaker and the two floor leaders may speak as long as they want."
+    question: "Congress as an institution has recently polled below 20 percent approval. What does the text say about how voters rate their own representative?",
+    options: ["Most individual members enjoy about 60 percent approval from their own constituents", "Individual members poll even lower than the institution", "Individual members are rarely polled, since districts are too small", "Approval of individual members has tracked the institution almost exactly"],
+    answer: "Most individual members enjoy about 60 percent approval from their own constituents",
+    explanation: "People dislike Congress and re-elect their own member, which is part of why incumbents have so little incentive to change how the institution works. Veteran congressman Lee Hamilton joked that the job description would make a brutal help-wanted ad."
+  },
+  {
+    id: "gb136", term: "gridlock", branch: "congress", topic: "2.3",
+    questionType: "application", difficulty: "medium",
+    question: "From the 1950s into the 1970s, political scientists complained that on many issues it was hard to tell the two parties apart. Which change does the text credit for that no longer being true?",
+    options: ["Moderates in both parties, especially Southern Democrats, were replaced by more ideological members", "The parties adopted formal platforms for the first time", "Congress abolished the seniority system for committee chairs", "The Supreme Court required parties to take opposing positions on major bills"],
+    answer: "Moderates in both parties, especially Southern Democrats, were replaced by more ideological members",
+    explanation: "As Republicans retired, more conservative Republicans replaced them, and Southern Democrats, once a moderating force, all but disappeared. Party-line voting became the norm and straying from the party became dangerous for anyone hoping to be reelected."
+  },
+  {
+    id: "gb137", term: "gerrymandering", branch: "congress", topic: "2.3",
+    questionType: "application", difficulty: "medium",
+    question: "Several states have used citizen ballot initiatives to hand redistricting to independent commissions. Which problem is that meant to solve?",
+    options: ["The party controlling a state legislature draws the map that decides its own seats", "Federal courts had refused to hear any redistricting case", "The census undercounts population in urban districts", "Congress lacked the authority to set the number of House seats"],
+    answer: "The party controlling a state legislature draws the map that decides its own seats",
+    explanation: "Redistricting by the legislature lets the majority party pick its voters, which the text says has increased partisanship and decreased accountability. Taking the pen out of the parties' hands is the counter-move."
+  },
+  {
+    id: "gb138", term: "Shaw v. Reno", branch: "congress", topic: "2.3",
+    questionType: "compare", difficulty: "medium",
+    question: "Which statement about the Court's holding in Shaw v. Reno (1993) is accurate?",
+    options: ["Race may be one factor in drawing a district, but a district explainable only by race must serve a compelling interest", "Race may never be considered when district lines are drawn", "Majority-minority districts were declared unconstitutional in every state", "District shape is irrelevant so long as population is equal"],
+    answer: "Race may be one factor in drawing a district, but a district explainable only by race must serve a compelling interest",
+    explanation: "The Court said plainly that race-conscious decisions are not impermissible in all circumstances. What it would not accept was a district so irregular on its face that nothing except sorting voters by race could explain it."
+  },
+  {
+    id: "gb139", term: "gridlock", branch: "congress", topic: "2.3",
+    questionType: "compare", difficulty: "hard",
+    question: "Divided government and gridlock are related but not the same thing. Which statement captures the difference?",
+    options: ["Divided government is a fact about who holds which office; gridlock is the congestion that can follow, and it also happens inside a single chamber", "Gridlock is a Senate rule, while divided government is a constitutional requirement", "Divided government describes the Supreme Court, while gridlock describes Congress", "They are two names for the same arrangement of party control"],
+    answer: "Divided government is a fact about who holds which office; gridlock is the congestion that can follow, and it also happens inside a single chamber",
+    explanation: "Divided government is one common cause, not the definition. The text describes gridlock building up within each house as well as between Congress and the president, which is why a party holding everything is no guarantee that anything moves."
+  },
+  {
+    id: "gb140", term: "delegate model", branch: "congress", topic: "2.3",
+    questionType: "compare", difficulty: "hard",
+    question: "The text splits the representation a delegate provides into substantive and descriptive. What is descriptive representation?",
+    options: ["Advocating for the traits that make a constituency distinctive, such as its geography, occupations or ethnicity", "Describing votes to constituents in plain language after the fact", "Advocating on behalf of a particular group of constituents on the issues they care about", "Publishing a written record of every vote a member casts"],
+    answer: "Advocating for the traits that make a constituency distinctive, such as its geography, occupations or ethnicity",
+    explanation: "Substantive representation is advocating for what a group of constituents wants; descriptive representation goes further and speaks for what makes them who they are. A delegate can be doing either, or both, while still mirroring the district."
   },
 
   // =======================================================================
@@ -989,7 +657,6 @@ const govBranchesBank = [
     answer: "Judges serve for life and shape the law long after the president has left office",
     explanation: "A secretary leaves when the administration does; a judge may sit for decades. With nearly 1,000 federal judgeships below the nine Supreme Court seats, senators on the Judiciary Committee expect to be consulted and are often slow to consent."
   },
-
   {
     id: "gb125", term: "executive privilege", branch: "presidency", topic: "2.4",
     questionType: "definition", difficulty: "easy",
@@ -1179,7 +846,6 @@ const govBranchesBank = [
     answer: "For district courts it is their ordinary work; for the Supreme Court it is a narrow exception the Constitution itself lists",
     explanation: "Original jurisdiction simply means hearing a case first. Every federal trial starts that way in a district court. For the Supreme Court the category covers only ambassadors, public ministers and cases where a state is a party, and Marbury held Congress cannot enlarge it."
   },
-
   {
     id: "gb126", term: "appellate jurisdiction", branch: "judiciary", topic: "2.8",
     questionType: "definition", difficulty: "easy",
@@ -1217,7 +883,6 @@ const govBranchesBank = [
     answer: "The bill becomes law over the president's objection",
     explanation: "The override is Congress's answer to the veto, and it is the clearest check either branch holds over the other in the legislative process. It is also rare: fewer than 10 percent of vetoes are overridden."
   },
-
   {
     id: "gb109", term: "mixed", branch: "mixed", topic: "2.5",
     questionType: "application", difficulty: "easy",
@@ -1225,22 +890,6 @@ const govBranchesBank = [
     options: ["The executive enforcing an order the judiciary had issued", "The executive overruling a decision of the judiciary", "Congress compelling the president to act by statute", "The judiciary giving orders directly to the armed forces"],
     answer: "The executive enforcing an order the judiciary had issued",
     explanation: "Courts can say what the law is but command neither sword nor purse, exactly as Federalist No. 78 observed. Enforcement runs through the executive, which is why a president's willingness to act determines whether a ruling has teeth."
-  },
-  {
-    id: "gb110", term: "mixed", branch: "mixed", topic: "2.2",
-    questionType: "compare", difficulty: "medium",
-    question: "Which of the following is something the Senate does that the House does not?",
-    options: ["Ratify treaties and confirm ambassadors", "Vote to impeach a federal official", "Draft tax legislation in the Ways and Means Committee", "Operate as a Committee of the Whole"],
-    answer: "Ratify treaties and confirm ambassadors",
-    explanation: "The framers gave the smaller, more continuous upper house the foreign policy role. Federalist No. 75 argued the House's fluctuating and multitudinous composition could not be trusted with such a task. The other three are House business."
-  },
-  {
-    id: "gb111", term: "mixed", branch: "mixed", topic: "2.2",
-    questionType: "compare", difficulty: "medium",
-    question: "Which pairing of a budget office with the branch it serves is correct?",
-    options: ["The OMB works for the president, and the CBO works for Congress", "The OMB works for Congress, and the CBO works for the president", "Both work for Congress, one for each chamber", "Both work for the president, one on revenue and one on spending"],
-    answer: "The OMB works for the president, and the CBO works for Congress",
-    explanation: "The OMB director is essentially the president's accountant and builds the proposal. The CBO's nonpartisan staff then picks that proposal apart on Congress's behalf, two rival scorekeepers built into the 1974 budget act."
   },
   {
     id: "gb112", term: "divided government", branch: "mixed", topic: "2.3",
@@ -1289,6 +938,22 @@ const govBranchesBank = [
     options: ["The Marshall Court's ruling in Marbury v. Madison (1803)", "The ratification of Article III in 1788", "The passage of the Judiciary Act of 1789", "The Dred Scott decision of 1857"],
     answer: "The Marshall Court's ruling in Marbury v. Madison (1803)",
     explanation: "Hamilton made the argument, and Marshall had promised at the Virginia Ratifying Convention that a federal judiciary would declare void any act repugnant to the Constitution. Article III never says so expressly, so the practice had to be established by a case, and Marshall became the first judge to do it."
+  },
+  {
+    id: "gb141", term: "veto", branch: "mixed", topic: "2.4",
+    questionType: "compare", difficulty: "medium",
+    question: "Which of the following is a check Congress holds over the president?",
+    options: ["Overriding a veto by a two-thirds vote of both houses", "Striking down an executive order as unconstitutional", "Removing a federal judge whose rulings it dislikes", "Refusing to enforce a Supreme Court ruling"],
+    answer: "Overriding a veto by a two-thirds vote of both houses",
+    explanation: "The override is Congress's answer to the veto. Striking down an order belongs to the courts, and enforcing rulings belongs to the executive, which is what Eisenhower did by sending troops to Little Rock in 1957."
+  },
+  {
+    id: "gb142", term: "Federalist No. 78", branch: "mixed", topic: "2.8",
+    questionType: "document", difficulty: "medium",
+    question: "Federalist No. 78 calls the judiciary the least dangerous branch because it holds neither the sword nor the purse. Which branch holds each of those?",
+    options: ["The executive commands the military, and Congress controls spending", "Congress commands the military, and the executive controls spending", "The executive holds both", "Congress holds both"],
+    answer: "The executive commands the military, and Congress controls spending",
+    explanation: "The president is Commander in Chief and Congress holds the power of the purse, so a court that wants its ruling carried out or its budget funded depends on the other two. Hamilton's point was that a branch with only judgment cannot dominate anyone."
   },
   {
     id: "gb118", term: "gridlock", branch: "mixed", topic: "2.3",
