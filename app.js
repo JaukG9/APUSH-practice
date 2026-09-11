@@ -5,8 +5,9 @@
    filter groups, powerup names) and a question bank; everything below is
    shared - selection, timing, scoring, feedback, results and multiplayer.
 
-   Question banks live in questions.js (APUSH / AP Gov) and affix-data.js
-   (Prefix & Suffix). No question text appears in this file.
+   Question banks live in questions.js (APUSH / AP Gov), gov-branches-data.js
+   (AP Gov Unit 2) and affix-data.js (Prefix & Suffix). No question text
+   appears in this file.
    ========================================================================= */
 
 'use strict';
@@ -34,8 +35,28 @@
 
   // How a session is described back to the player after answering.
   const CATEGORY_LABELS = { prefix: 'Prefix', suffix: 'Suffix', mixed: 'Mixed Review' };
+  const BRANCH_LABELS = {
+    congress: 'Congress', presidency: 'The Presidency',
+    judiciary: 'The Judiciary', mixed: 'Cross-Branch'
+  };
   const DIFFICULTY_LABELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
   const DIFFICULTY_ORDER = { easy: 0, medium: 1, hard: 2 };
+
+  /** Every object bank filters on difficulty; only the hints differ. */
+  function difficultyFilter(hints) {
+    return {
+      id: 'difficulty', label: 'Difficulty', field: 'difficulty',
+      options: ['easy', 'medium', 'hard'].map((value) => ({
+        value: value, label: DIFFICULTY_LABELS[value], title: hints[value]
+      }))
+    };
+  }
+
+  /** Shared with both legacy subjects, whose setup screens read identically. */
+  const LEGACY_BRIEF = [
+    'Choose the units you want to study, how many questions you want, and whether the timer is on.',
+    'You will see the correct answer immediately after each question, then move on when you are ready.'
+  ];
 
   const APUSH_PERIODS = [
     [1, 'Per 1', '1491-1607'], [2, 'Per 2', '1607-1754'], [3, 'Per 3', '1754-1800'],
@@ -55,17 +76,26 @@
     [9, '9. Birmingham', 'Letter from Birmingham Jail']
   ];
 
+  const GOV_BRANCHES = [
+    ['congress', 'Congress', 'Topics 2.1-2.3: how the House and Senate are built, and how they behave'],
+    ['presidency', 'The Presidency', 'Topics 2.4-2.7: presidential powers, the checks on them, and communication'],
+    ['judiciary', 'The Judiciary', 'Topic 2.8: the federal courts, Federalist No. 78, and judicial review'],
+    ['mixed', 'Cross-Branch', 'Items that turn on how two or three institutions check each other']
+  ];
+
   const SUBJECTS = {
     APUSH: {
       title: 'APUSH Practice',
       blurb: 'Multiple choice review across the nine College Board periods.',
       format: 'legacy',
       unitLabel: 'Period',
+      brief: LEGACY_BRIEF,
       getBank: () => (typeof apushBank === 'undefined' ? null : apushBank),
       filterGroups: [{
         id: 'unit',
         label: 'Select Periods / Units',
         selectAll: true,
+        defaultOn: false,
         options: APUSH_PERIODS.map(([id, short, span]) => ({
           value: String(id), label: short, title: 'Period ' + id + ' (' + span + ')',
           badge: 'Period ' + id + ' · ' + span
@@ -83,11 +113,13 @@
       blurb: 'Questions drawn from the nine required foundational documents.',
       format: 'legacy',
       unitLabel: 'Document',
+      brief: LEGACY_BRIEF,
       getBank: () => (typeof apGovBank === 'undefined' ? null : apGovBank),
       filterGroups: [{
         id: 'unit',
         label: 'Select Foundational Documents',
         selectAll: true,
+        defaultOn: false,
         options: APGOV_DOCUMENTS.map(([id, short, name]) => ({
           value: String(id), label: short, title: name, badge: name
         }))
@@ -102,22 +134,34 @@
     AFFIX: {
       title: 'Prefix & Suffix Practice',
       blurb: 'Learn what word parts mean, then use them to decode unfamiliar words.',
-      format: 'affix',
+      format: 'tagged',
       unitLabel: 'Level',
       getBank: () => (typeof affixBank === 'undefined' ? null : affixBank),
+      emptyMessage: 'Select at least one difficulty and one focus.',
+      // A session draws round-robin across affixes so no single word part
+      // dominates, then spreads question styles out inside each difficulty.
+      groupBy: (q) => q.affix || 'mixed',
+      spreadBy: (q) => q.questionType,
+      badges: (q) => [
+        { text: DIFFICULTY_LABELS[q.difficulty] || q.difficulty, className: 'level-' + q.difficulty },
+        { text: CATEGORY_LABELS[q.type] || q.type }
+      ],
+      howToPlayNote: 'A prefix goes on the front of a word and a suffix goes on the end. Both change what the word means, so knowing a few dozen of them lets you decode words you have never seen. Questions get harder as a session goes on.',
+      brief: [
+        'Every question is multiple choice with one clearly best answer. Read the affix, not just the word: distractors are usually real affixes with a different meaning.',
+        'Pick your difficulty and focus below. A session mixes prefixes, suffixes and question styles, and ramps from easier items to harder ones.',
+        'After you answer you will see why the answer is right, so take a second to read it before moving on.'
+      ],
       filterGroups: [
-        {
-          id: 'difficulty',
-          label: 'Difficulty',
-          options: [
-            { value: 'easy', label: 'Easy', title: 'Name the meaning of an affix directly' },
-            { value: 'medium', label: 'Medium', title: 'Read an affix inside a familiar word' },
-            { value: 'hard', label: 'Hard', title: 'Decode unfamiliar words and separate lookalikes' }
-          ]
-        },
+        difficultyFilter({
+          easy: 'Name the meaning of an affix directly',
+          medium: 'Read an affix inside a familiar word',
+          hard: 'Decode unfamiliar words and separate lookalikes'
+        }),
         {
           id: 'category',
           label: 'Focus',
+          field: 'type',
           options: [
             { value: 'prefix', label: 'Prefixes', title: 'Word parts added to the front' },
             { value: 'suffix', label: 'Suffixes', title: 'Word parts added to the end' },
@@ -129,6 +173,51 @@
         ELIM2: 'Semi-Reveal', AUTOCORRECT: 'Autocorrect', DOUBLE: 'Multiplier',
         BLOCK: 'Antibody', GAMBLE: 'Ultra Wager', NUKE: 'Demotion',
         STEAL: 'Abduction', ZERO: 'Nullify'
+      }
+    },
+
+    APGOV_BRANCHES: {
+      title: 'AP Gov: Branches',
+      blurb: 'Unit 2 - Congress, the presidency and the courts, and how they check each other.',
+      format: 'tagged',
+      unitLabel: 'Institution',
+      getBank: () => (typeof govBranchesBank === 'undefined' ? null : govBranchesBank),
+      emptyMessage: 'Select at least one institution and one difficulty.',
+      // Round-robin across the three institutions so a session never turns
+      // into twenty questions about committees.
+      groupBy: (q) => q.branch || 'mixed',
+      spreadBy: (q) => q.questionType,
+      badges: (q) => [
+        { text: DIFFICULTY_LABELS[q.difficulty] || q.difficulty, className: 'level-' + q.difficulty },
+        { text: BRANCH_LABELS[q.branch] || q.branch },
+        { text: 'Topic ' + q.topic }
+      ],
+      howToPlayNote: 'This unit is about how the three branches actually work on each other: what Congress can do to a bill, what a president can do without Congress, and what a court can undo. Questions get harder as a session goes on, and many ask you to recognize a concept in a real situation rather than define it.',
+      brief: [
+        'Every question is multiple choice with one clearly best answer, drawn from AMSCO Topics 2.1 through 2.8.',
+        'Pick the institutions you want to study and how hard you want the questions. Cross-Branch items ask you to compare two or three institutions at once.',
+        'Distractors are usually real terms from the same unit, so read carefully: a rider is not pork, and a hold is not a filibuster. The feedback after each question explains why.'
+      ],
+      filterGroups: [
+        {
+          id: 'branch',
+          label: 'Select Institutions',
+          field: 'branch',
+          selectAll: true,
+          options: GOV_BRANCHES.map(([value, label, title]) => ({
+            value: value, label: label, title: title
+          }))
+        },
+        difficultyFilter({
+          easy: 'Name a term or identify a basic power',
+          medium: 'Apply a concept or tell two similar ones apart',
+          hard: 'Reason through a case, a document, or a real scenario'
+        })
+      ],
+      powerups: {
+        ELIM2: 'Cloture', AUTOCORRECT: 'Judicial Review', DOUBLE: 'Omnibus',
+        BLOCK: 'Executive Privilege', GAMBLE: 'Swing District', NUKE: 'Veto',
+        STEAL: 'Pork Barrel', ZERO: 'Filibuster'
       }
     }
   };
@@ -301,12 +390,10 @@
     ));
     body.appendChild(scoring);
 
-    if (state.subject === 'AFFIX') {
+    if (config.howToPlayNote) {
       const intro = el('p');
       intro.appendChild(el('strong', null, 'This mode: '));
-      intro.appendChild(document.createTextNode(
-        'A prefix goes on the front of a word and a suffix goes on the end. Both change what the word means, so knowing a few dozen of them lets you decode words you have never seen. Questions get harder as a session goes on.'
-      ));
+      intro.appendChild(document.createTextNode(config.howToPlayNote));
       body.appendChild(intro);
     }
 
@@ -338,14 +425,7 @@
     brief.textContent = '';
     brief.appendChild(el('h3', null, subject().title));
 
-    const lines = state.subject === 'AFFIX'
-      ? ['Every question is multiple choice with one clearly best answer. Read the affix, not just the word: distractors are usually real affixes with a different meaning.',
-         'Pick your difficulty and focus below. A session mixes prefixes, suffixes and question styles, and ramps from easier items to harder ones.',
-         'After you answer you will see why the answer is right, so take a second to read it before moving on.']
-      : ['Choose the units you want to study, how many questions you want, and whether the timer is on.',
-         'You will see the correct answer immediately after each question, then move on when you are ready.'];
-
-    lines.forEach((line) => brief.appendChild(el('p', null, line)));
+    (subject().brief || LEGACY_BRIEF).forEach((line) => brief.appendChild(el('p', null, line)));
   }
 
   function renderFilterGroups() {
@@ -366,9 +446,9 @@
         btn.type = 'button';
         btn.dataset.value = option.value;
         if (option.title) btn.title = option.title;
-        // Difficulty/focus filters start switched on; unit filters start empty
-        // so the player consciously picks what to study, as before.
-        const on = group.id !== 'unit';
+        // Most filters start switched on; the legacy unit pickers start empty
+        // so the player consciously chooses what to study, as before.
+        const on = group.defaultOn !== false;
         btn.setAttribute('aria-pressed', String(on));
         btn.addEventListener('click', () => {
           btn.setAttribute('aria-pressed', btn.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
@@ -432,12 +512,17 @@
       return bank.filter((row) => Array.isArray(row) && row.length === 6 && units.has(String(row[0])));
     }
 
-    const levels = new Set(filters.difficulty || []);
-    const categories = new Set(filters.category || []);
-    if (!levels.size || !categories.size) return [];
+    // Object banks declare which question field each filter group reads, so
+    // one pass covers difficulty, focus, institution or anything added later.
+    const groups = config.filterGroups.map((group) => ({
+      field: group.field,
+      chosen: new Set(filters[group.id] || [])
+    }));
+    if (groups.some((group) => !group.chosen.size)) return [];
+
     return bank.filter((q) =>
       q && Array.isArray(q.options) && q.options.length === 4 &&
-      levels.has(q.difficulty) && categories.has(q.type)
+      groups.every((group) => group.chosen.has(q[group.field]))
     );
   }
 
@@ -457,10 +542,7 @@
     }
     return {
       id: entry.id,
-      badges: [
-        { text: DIFFICULTY_LABELS[entry.difficulty] || entry.difficulty, className: 'level-' + entry.difficulty },
-        { text: CATEGORY_LABELS[entry.type] || entry.type }
-      ],
+      badges: config.badges(entry),
       question: entry.question,
       options: shuffle(entry.options),
       answer: entry.answer,
@@ -486,27 +568,29 @@
   /**
    * Builds one session.
    *
-   * Legacy banks are simply shuffled. The affix bank is drawn round-robin
-   * across affixes so no single word part dominates, preferring questions the
-   * player has not seen recently, then ordered easy -> medium -> hard with
-   * question types spread out so consecutive items do not feel identical.
+   * Legacy banks are simply shuffled. An object bank is drawn round-robin
+   * across whatever the subject groups by - an affix, an institution - so no
+   * single topic dominates, preferring questions the player has not seen
+   * recently, then ordered easy -> medium -> hard with question types spread
+   * out so consecutive items do not feel identical.
    */
   function buildSession(filters, limit) {
+    const config = subject();
     const pool = matchingQuestions(filters);
     if (!pool.length) return [];
 
-    if (subject().format === 'legacy') {
+    if (config.format === 'legacy') {
       return shuffle(pool).slice(0, limit).map(normalize);
     }
 
     const recent = new Set(readStore().recent || []);
     const groups = new Map();
     shuffle(pool).forEach((q) => {
-      const key = q.affix || 'mixed';
+      const key = config.groupBy(q);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(q);
     });
-    // Inside each affix, unseen questions come first.
+    // Inside each group, unseen questions come first.
     groups.forEach((list) => list.sort((a, b) => (recent.has(a.id) ? 1 : 0) - (recent.has(b.id) ? 1 : 0)));
 
     const order = shuffle(Array.from(groups.keys()));
@@ -524,7 +608,7 @@
     const ramped = [];
     ['easy', 'medium', 'hard'].forEach((level) => {
       const band = picked.filter((q) => q.difficulty === level);
-      ramped.push.apply(ramped, spread(shuffle(band), (q) => q.questionType));
+      ramped.push.apply(ramped, spread(shuffle(band), config.spreadBy));
     });
     // Anything with an unexpected difficulty still gets played rather than lost.
     picked.filter((q) => DIFFICULTY_ORDER[q.difficulty] === undefined).forEach((q) => ramped.push(q));
@@ -553,16 +637,15 @@
   function readSettings(errorId) {
     const config = subject();
     if (!config.getBank()) {
-      setError(errorId, 'Question data failed to load. Check that questions.js and affix-data.js are present, then reload.');
+      setError(errorId, 'Question data failed to load. Check that the content files next to practice.html are all present, then reload.');
       return null;
     }
 
     const filters = readFilters();
     const pool = matchingQuestions(filters);
     if (!pool.length) {
-      setError(errorId, config.format === 'legacy'
-        ? 'Select at least one ' + config.unitLabel.toLowerCase() + ' to study.'
-        : 'Select at least one difficulty and one focus.');
+      setError(errorId, config.emptyMessage
+        || 'Select at least one ' + config.unitLabel.toLowerCase() + ' to study.');
       return null;
     }
 
