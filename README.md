@@ -1,6 +1,6 @@
 # [AP Practice](https://jaukg9.github.io/APUSH-practice/practice.html)
 
-Browser-based practice quizzes with four subjects, playable solo or as a
+Browser-based practice quizzes with five subjects, playable solo or as a
 multiplayer match. No build step and no dependencies — open `practice.html`.
 
 ## Modes
@@ -10,6 +10,7 @@ multiplayer match. No build step and no dependencies — open `practice.html`.
 | APUSH | 232 questions | Period 1–9 |
 | AP Gov | 257 questions | The nine required foundational documents |
 | AP Gov: 2.3-2.8 | 98 questions over 56 key terms | Institution and difficulty |
+| AP Gov: 2.9-2.15 | 165 questions over 90 key terms | Area and difficulty |
 | Prefix & Suffix Practice | 115 questions over 62 affixes | Difficulty and prefix/suffix focus |
 
 **Single player** runs at your own pace: answer, read the feedback, continue.
@@ -21,7 +22,7 @@ standings board and a powerup shop between rounds. Players can join a match
 already in progress, and a dropped connection reconnects into the same seat
 with its score intact.
 
-Scoring is shared across all four subjects. With the timer on, a correct answer
+Scoring is shared across all five subjects. With the timer on, a correct answer
 is worth 60–100 points depending on speed; with it off, every correct answer is
 worth 100. Streaks count consecutive correct answers, and your best streak per
 subject is remembered locally.
@@ -36,6 +37,7 @@ match.js               the authoritative match rules: phases, scoring, powerups
 net.js                 transport: room codes, heartbeats, clock sync, reconnects
 questions.js           APUSH + AP Gov banks
 gov-branches-data.js   AP Gov 2.3-2.8 key terms and question bank
+gov-policy-data.js     AP Gov 2.9-2.15 key terms and question bank
 affix-data.js          prefix/suffix vocabulary and question bank
 prefix_suffix_vocabulary.csv   source of truth for the affix vocabulary
 tools/validate-content.js      content checker
@@ -144,6 +146,39 @@ Question ids are not contiguous. They are identity keys, and the gaps are where
 Topics 2.1 and 2.2 used to sit; reusing a number would collide with the
 recently-seen list a returning player already has stored, so keep counting up.
 
+**AP Gov: 2.9-2.15** — append an object to `govPolicyBank` in
+`gov-policy-data.js`. Same shape as the bank above, with `area` in place of
+`branch`.
+
+```js
+{
+  id: "gp166", term: "rule of four", area: "courts", topic: "2.10",
+  questionType: "definition", difficulty: "easy",
+  question: "Under the rule of four, an appeal is added to the docket when ...",
+  options: ["four of the nine justices agree to hear it", "...", "...", "..."],
+  answer: "four of the nine justices agree to hear it",
+  explanation: "Four is deliberately less than a majority, so a bloc that ..."
+}
+```
+
+- `area` is `courts` (Topics 2.9–2.10, precedent and the Court in action),
+  `checks` (Topic 2.11, the other branches' limits on the judiciary),
+  `bureaucracy` (Topics 2.12–2.13, structure and rule making), `oversight`
+  (Topics 2.14–2.15, accountability), or `mixed` for items that turn on the
+  courts and the bureaucracy at once. It drives the Area filter, and a session
+  is drawn round-robin across areas.
+- `difficulty`, `questionType` and `term` work exactly as in the 2.3-2.8 bank;
+  `term` must match an entry in `govPolicyVocab`, or be `mixed` for items that
+  compare several concepts.
+
+`govPolicyVocab` is the key-term list, taken from the same AMSCO edition,
+pages 188–243 — Chapter 6 Topics 2.9–2.11 (the judiciary's legitimacy) and
+Chapter 7 Topics 2.12–2.15 (the bureaucracy). Edit that list first if the
+source changes.
+
+Ids run `gp001` upward with no gaps so far. Keep counting up rather than
+filling any that open later, for the same reason as above.
+
 **Prefix & Suffix** — append an object to `affixBank` in `affix-data.js`.
 
 ```js
@@ -176,6 +211,7 @@ node tools/validate-content.js
 It checks that every question has exactly four distinct options, that the answer
 is among them, that ids and question stems are unique, and that every affix or
 key term referenced actually exists — then prints coverage by difficulty,
-question type, affix and institution. It also warns if any institution and
-difficulty combination has no questions, since that filter pairing would hand
-the setup screen an empty pool.
+question type, affix, institution and area. It also warns if any filter pairing
+has no questions, since that pairing would hand the setup screen an empty pool,
+and if a bank's correct answer is the longest option often enough to be
+guessable without reading the question.

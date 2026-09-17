@@ -6,8 +6,8 @@
    shared - selection, timing, scoring, feedback, results and multiplayer.
 
    Question banks live in questions.js (APUSH / AP Gov), gov-branches-data.js
-   (AP Gov 2.3-2.8) and affix-data.js (Prefix & Suffix). No question text
-   appears in this file.
+   (AP Gov 2.3-2.8), gov-policy-data.js (AP Gov 2.9-2.15) and affix-data.js
+   (Prefix & Suffix). No question text appears in this file.
    ========================================================================= */
 
 'use strict';
@@ -29,6 +29,10 @@
   const BRANCH_LABELS = {
     congress: 'Congress', presidency: 'The Presidency',
     judiciary: 'The Judiciary', mixed: 'Cross-Branch'
+  };
+  const AREA_LABELS = {
+    courts: 'The Supreme Court', checks: 'Checks on the Courts',
+    bureaucracy: 'The Bureaucracy', oversight: 'Oversight', mixed: 'Cross-Cutting'
   };
   const DIFFICULTY_LABELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
   const DIFFICULTY_ORDER = { easy: 0, medium: 1, hard: 2 };
@@ -72,6 +76,14 @@
     ['presidency', 'The Presidency', 'Topics 2.4-2.7: presidential powers, the checks on them, and communication'],
     ['judiciary', 'The Judiciary', 'Topic 2.8: the federal courts, Federalist No. 78, and judicial review'],
     ['mixed', 'Cross-Branch', 'Items that turn on how two or three institutions check each other']
+  ];
+
+  const GOV_POLICY_AREAS = [
+    ['courts', 'The Supreme Court', 'Topics 2.9-2.10: precedent, opinions, and how cases reach the Court'],
+    ['checks', 'Checks on the Courts', 'Topic 2.11: activism and restraint, confirmations, and the other branches'],
+    ['bureaucracy', 'The Bureaucracy', 'Topics 2.12-2.13: structure, the merit system, and delegated rule making'],
+    ['oversight', 'Oversight', 'Topics 2.14-2.15: congressional and presidential control, and the courts'],
+    ['mixed', 'Cross-Cutting', 'Items that turn on the courts and the bureaucracy at the same time']
   ];
 
   const SUBJECTS = {
@@ -209,6 +221,51 @@
         ELIM2: 'Cloture', AUTOCORRECT: 'Judicial Review', DOUBLE: 'Omnibus',
         BLOCK: 'Executive Privilege', GAMBLE: 'Swing District', NUKE: 'Veto',
         STEAL: 'Pork Barrel', ZERO: 'Filibuster'
+      }
+    },
+
+    APGOV_POLICY: {
+      title: 'AP Gov: 2.9-2.15',
+      blurb: 'The Supreme Court\u2019s legitimacy, the federal bureaucracy, and who holds each of them accountable.',
+      format: 'tagged',
+      unitLabel: 'Area',
+      getBank: () => (typeof govPolicyBank === 'undefined' ? null : govPolicyBank),
+      emptyMessage: 'Select at least one area and one difficulty.',
+      // Round-robin across the four areas so a session never turns into
+      // twenty questions about rule making.
+      groupBy: (q) => q.area || 'mixed',
+      spreadBy: (q) => q.questionType,
+      badges: (q) => [
+        { text: DIFFICULTY_LABELS[q.difficulty] || q.difficulty, className: 'level-' + q.difficulty },
+        { text: AREA_LABELS[q.area] || q.area },
+        { text: 'Topic ' + q.topic }
+      ],
+      howToPlayNote: 'These topics ask two questions over and over: why anyone should accept what nine unelected justices decide, and who controls the three million people who actually carry out federal law. Questions get harder as a session goes on, and many put a concept inside a real situation rather than asking you to define it.',
+      brief: [
+        'Every question is multiple choice with one clearly best answer, drawn from AMSCO Topics 2.9 through 2.15.',
+        'Pick the areas you want to study and how hard you want the questions. Cross-Cutting items ask you to connect the courts and the bureaucracy in the same answer.',
+        'Distractors are usually real terms from the same unit, so read carefully: binding is not persuasive precedent, an authorization is not an appropriation, and activism is not restraint. The feedback after each question explains why.'
+      ],
+      filterGroups: [
+        {
+          id: 'area',
+          label: 'Select Areas',
+          field: 'area',
+          selectAll: true,
+          options: GOV_POLICY_AREAS.map(([value, label, title]) => ({
+            value: value, label: label, title: title
+          }))
+        },
+        difficultyFilter({
+          easy: 'Name a term or identify a basic power',
+          medium: 'Apply a concept or tell two similar ones apart',
+          hard: 'Reason through a case, a document, or a real scenario'
+        })
+      ],
+      powerups: {
+        ELIM2: 'Rule of Four', AUTOCORRECT: 'Chevron Deference', DOUBLE: 'Appropriations',
+        BLOCK: 'Whistleblower Act', GAMBLE: 'Nuclear Option', NUKE: 'Borked',
+        STEAL: 'Power of the Purse', ZERO: 'Legislative Veto'
       }
     }
   };

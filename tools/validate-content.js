@@ -3,7 +3,8 @@
  *
  *   node tools/validate-content.js
  *
- * Run this after editing affix-data.js, gov-branches-data.js or questions.js.
+ * Run this after editing affix-data.js, gov-branches-data.js, gov-policy-data.js
+ * or questions.js.
  * It checks the things that quietly break gameplay - a missing option, an
  * answer that is not among the options, a duplicate question - and prints a
  * coverage report so you can see which topics and difficulties are thin
@@ -15,6 +16,7 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const { affixVocab, affixBank } = require(path.join(root, 'affix-data.js'));
 const { govBranchesVocab, govBranchesBank } = require(path.join(root, 'gov-branches-data.js'));
+const { govPolicyVocab, govPolicyBank } = require(path.join(root, 'gov-policy-data.js'));
 const { apushBank, apGovBank } = require(path.join(root, 'questions.js'));
 
 const errors = [];
@@ -66,6 +68,13 @@ const govKeys = checkVocab('govBranchesVocab', govBranchesVocab, {
   keyField: 'term',
   required: ['term', 'display', 'topic', 'meaning'],
   enums: { branch: ['congress', 'presidency', 'judiciary'] },
+  key: (entry) => entry.term
+});
+
+const policyKeys = checkVocab('govPolicyVocab', govPolicyVocab, {
+  keyField: 'term',
+  required: ['term', 'display', 'topic', 'meaning'],
+  enums: { area: ['courts', 'checks', 'bureaucracy', 'oversight'] },
   key: (entry) => entry.term
 });
 
@@ -154,6 +163,14 @@ const govCoverage = checkObjectBank('govBranchesBank', govBranchesBank, {
   group: (q) => q.branch
 });
 
+const policyCoverage = checkObjectBank('govPolicyBank', govPolicyBank, {
+  vocab: policyKeys,
+  required: ['question', 'answer', 'explanation', 'questionType', 'difficulty', 'term', 'area', 'topic'],
+  enums: { area: ['courts', 'checks', 'bureaucracy', 'oversight', 'mixed'] },
+  vocabKey: (q) => (q.term === 'mixed' ? null : q.term),
+  group: (q) => q.area
+});
+
 // Every filterable combination needs questions or that filter picks up an
 // empty pool and the setup screen refuses to start.
 ['congress', 'presidency', 'judiciary', 'mixed'].forEach((branch) => {
@@ -162,6 +179,25 @@ const govCoverage = checkObjectBank('govBranchesBank', govBranchesBank, {
     if (!n) warn(`govBranchesBank: no ${difficulty} questions for "${branch}"`);
   });
 });
+
+['courts', 'checks', 'bureaucracy', 'oversight', 'mixed'].forEach((area) => {
+  ['easy', 'medium', 'hard'].forEach((difficulty) => {
+    const n = govPolicyBank.filter((q) => q.area === area && q.difficulty === difficulty).length;
+    if (!n) warn(`govPolicyBank: no ${difficulty} questions for "${area}"`);
+  });
+});
+
+// A bank where the right answer is reliably the longest option is a bank a
+// player can beat without reading it. Random would be about 25 percent.
+[['govBranchesBank', govBranchesBank], ['govPolicyBank', govPolicyBank], ['affixBank', affixBank]]
+  .forEach(([name, bank]) => {
+    const longest = bank.filter((q) => {
+      if (!Array.isArray(q.options) || !q.options.includes(q.answer)) return false;
+      return q.options.every((o) => o === q.answer || o.length < q.answer.length);
+    }).length;
+    const share = Math.round((100 * longest) / bank.length);
+    if (share > 45) warn(`${name}: answer is the longest option in ${share}% of questions`);
+  });
 
 // --- Legacy banks (arrays: [unit, question, correct, w1, w2, w3]) ----------
 function checkLegacy(name, bank) {
@@ -195,6 +231,11 @@ const untestedTerms = govBranchesVocab
   .filter((v) => !testedTerms.has(v.term))
   .map((v) => v.display);
 
+const testedPolicy = new Set(govPolicyBank.map((q) => q.term));
+const untestedPolicy = govPolicyVocab
+  .filter((v) => !testedPolicy.has(v.term))
+  .map((v) => v.display);
+
 console.log('Affix vocabulary : %d entries (%d prefixes, %d suffixes)',
   affixVocab.length,
   affixVocab.filter((v) => v.type === 'prefix').length,
@@ -214,6 +255,14 @@ console.log('  by type        : %s', JSON.stringify(govCoverage.byType));
 console.log('  by institution : %s', groupCounts(govCoverage));
 console.log('  terms tested   : %d of %d', govBranchesVocab.length - untestedTerms.length, govBranchesVocab.length);
 if (untestedTerms.length) console.log('  never tested   : %s', untestedTerms.join(', '));
+
+console.log('\nAP Gov 2.9-2.15 vocabulary : %d key terms', govPolicyVocab.length);
+console.log('AP Gov 2.9-2.15 questions  : %d', govPolicyBank.length);
+console.log('  by difficulty  : %s', JSON.stringify(policyCoverage.byDifficulty));
+console.log('  by type        : %s', JSON.stringify(policyCoverage.byType));
+console.log('  by area        : %s', groupCounts(policyCoverage));
+console.log('  terms tested   : %d of %d', govPolicyVocab.length - untestedPolicy.length, govPolicyVocab.length);
+if (untestedPolicy.length) console.log('  never tested   : %s', untestedPolicy.join(', '));
 
 console.log('\nAPUSH questions  : %d', apushBank.length);
 console.log('AP Gov questions : %d', apGovBank.length);
