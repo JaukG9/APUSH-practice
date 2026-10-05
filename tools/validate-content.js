@@ -3,8 +3,8 @@
  *
  *   node tools/validate-content.js
  *
- * Run this after editing affix-data.js, gov-branches-data.js, gov-policy-data.js
- * or questions.js.
+ * Run this after editing affix-data.js, gov-branches-data.js, gov-policy-data.js,
+ * gov-liberties-data.js or questions.js.
  * It checks the things that quietly break gameplay - a missing option, an
  * answer that is not among the options, a duplicate question - and prints a
  * coverage report so you can see which topics and difficulties are thin
@@ -17,6 +17,7 @@ const root = path.join(__dirname, '..');
 const { affixVocab, affixBank } = require(path.join(root, 'affix-data.js'));
 const { govBranchesVocab, govBranchesBank } = require(path.join(root, 'gov-branches-data.js'));
 const { govPolicyVocab, govPolicyBank } = require(path.join(root, 'gov-policy-data.js'));
+const { govLibertiesVocab, govLibertiesBank } = require(path.join(root, 'gov-liberties-data.js'));
 const { apushBank, apGovBank } = require(path.join(root, 'questions.js'));
 
 const errors = [];
@@ -76,6 +77,24 @@ const policyKeys = checkVocab('govPolicyVocab', govPolicyVocab, {
   required: ['term', 'display', 'topic', 'meaning'],
   enums: { area: ['courts', 'checks', 'bureaucracy', 'oversight'] },
   key: (entry) => entry.term
+});
+
+const LIBERTY_AREAS = ['rights', 'religion', 'expression', 'safety', 'dueprocess'];
+const libertyKeys = checkVocab('govLibertiesVocab', govLibertiesVocab, {
+  keyField: 'term',
+  required: ['term', 'display', 'topic', 'meaning'],
+  enums: { area: LIBERTY_AREAS },
+  key: (entry) => entry.term
+});
+
+// Every 3.1-3.8 entry cites the AMSCO page it comes from (Chapters 8-10 run
+// pages 260-328) and says whether it is one of the book's own key terms.
+govLibertiesVocab.forEach((entry, i) => {
+  const where = `govLibertiesVocab[${i}] (${entry.term})`;
+  if (!Number.isInteger(entry.page) || entry.page < 260 || entry.page > 328) {
+    fail(`${where}: page ${entry.page} is outside AMSCO pages 260-328`);
+  }
+  if (typeof entry.keyTerm !== 'boolean') fail(`${where}: keyTerm must be true or false`);
 });
 
 // --- Object question banks ------------------------------------------------
@@ -171,6 +190,18 @@ const policyCoverage = checkObjectBank('govPolicyBank', govPolicyBank, {
   group: (q) => q.area
 });
 
+const libertyCoverage = checkObjectBank('govLibertiesBank', govLibertiesBank, {
+  vocab: libertyKeys,
+  required: ['question', 'answer', 'explanation', 'questionType', 'difficulty', 'term', 'area', 'topic'],
+  enums: {
+    area: LIBERTY_AREAS.concat('mixed'),
+    topic: ['3.1', '3.2', '3.3', '3.4', '3.5', '3.6', '3.7', '3.8'],
+    questionType: ['definition', 'application', 'scenario', 'compare', 'document', 'case', 'process']
+  },
+  vocabKey: (q) => (q.term === 'mixed' ? null : q.term),
+  group: (q) => q.area
+});
+
 // Every filterable combination needs questions or that filter picks up an
 // empty pool and the setup screen refuses to start.
 ['congress', 'presidency', 'judiciary', 'mixed'].forEach((branch) => {
@@ -187,9 +218,17 @@ const policyCoverage = checkObjectBank('govPolicyBank', govPolicyBank, {
   });
 });
 
+LIBERTY_AREAS.concat('mixed').forEach((area) => {
+  ['easy', 'medium', 'hard'].forEach((difficulty) => {
+    const n = govLibertiesBank.filter((q) => q.area === area && q.difficulty === difficulty).length;
+    if (!n) warn(`govLibertiesBank: no ${difficulty} questions for "${area}"`);
+  });
+});
+
 // A bank where the right answer is reliably the longest option is a bank a
 // player can beat without reading it. Random would be about 25 percent.
-[['govBranchesBank', govBranchesBank], ['govPolicyBank', govPolicyBank], ['affixBank', affixBank]]
+[['govBranchesBank', govBranchesBank], ['govPolicyBank', govPolicyBank],
+  ['govLibertiesBank', govLibertiesBank], ['affixBank', affixBank]]
   .forEach(([name, bank]) => {
     const longest = bank.filter((q) => {
       if (!Array.isArray(q.options) || !q.options.includes(q.answer)) return false;
@@ -197,6 +236,34 @@ const policyCoverage = checkObjectBank('govPolicyBank', govPolicyBank, {
     }).length;
     const share = Math.round((100 * longest) / bank.length);
     if (share > 45) warn(`${name}: answer is the longest option in ${share}% of questions`);
+  });
+
+// Exact-duplicate stems are an error above; this catches the softer case of
+// two questions that share nearly all their wording and the same answer, which
+// usually means one was cloned with only a term swapped. The affix bank is
+// left out because its "What does X mean?" stems are templated on purpose.
+const STOPWORDS = new Set(('the and for are was were that this which what who whom why how with from ' +
+  'than their they its not does did most best under after before into about one each').split(' '));
+function contentWords(text) {
+  return new Set(text.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
+    .filter((w) => w.length > 2 && !STOPWORDS.has(w)));
+}
+function similarity(a, b) {
+  let shared = 0;
+  a.forEach((w) => { if (b.has(w)) shared++; });
+  return shared / ((a.size + b.size - shared) || 1);
+}
+[['govBranchesBank', govBranchesBank], ['govPolicyBank', govPolicyBank], ['govLibertiesBank', govLibertiesBank]]
+  .forEach(([name, bank]) => {
+    const words = bank.map((q) => contentWords(q.question + ' ' + q.answer));
+    for (let i = 0; i < bank.length; i++) {
+      for (let j = i + 1; j < bank.length; j++) {
+        const score = similarity(words[i], words[j]);
+        if (score >= 0.6) {
+          warn(`${name}: ${bank[i].id} and ${bank[j].id} look near-duplicate (${Math.round(score * 100)}% shared wording)`);
+        }
+      }
+    }
   });
 
 // --- Legacy banks (arrays: [unit, question, correct, w1, w2, w3]) ----------
@@ -263,6 +330,24 @@ console.log('  by type        : %s', JSON.stringify(policyCoverage.byType));
 console.log('  by area        : %s', groupCounts(policyCoverage));
 console.log('  terms tested   : %d of %d', govPolicyVocab.length - untestedPolicy.length, govPolicyVocab.length);
 if (untestedPolicy.length) console.log('  never tested   : %s', untestedPolicy.join(', '));
+
+const testedLiberty = new Set(govLibertiesBank.map((q) => q.term));
+const untestedLiberty = govLibertiesVocab
+  .filter((v) => !testedLiberty.has(v.term))
+  .map((v) => v.display);
+const keyTerms = govLibertiesVocab.filter((v) => v.keyTerm);
+const untestedKeyTerms = keyTerms.filter((v) => !testedLiberty.has(v.term));
+// AMSCO's own key-term lists are the floor for this mode, so a gap is an error.
+untestedKeyTerms.forEach((v) => fail(`govLibertiesBank: AMSCO key term "${v.display}" has no question`));
+
+console.log('\nAP Gov 3.1-3.8 vocabulary : %d terms (%d AMSCO key terms)', govLibertiesVocab.length, keyTerms.length);
+console.log('AP Gov 3.1-3.8 questions  : %d', govLibertiesBank.length);
+console.log('  by difficulty  : %s', JSON.stringify(libertyCoverage.byDifficulty));
+console.log('  by type        : %s', JSON.stringify(libertyCoverage.byType));
+console.log('  by area        : %s', groupCounts(libertyCoverage));
+console.log('  key terms      : %d of %d tested', keyTerms.length - untestedKeyTerms.length, keyTerms.length);
+console.log('  terms tested   : %d of %d', govLibertiesVocab.length - untestedLiberty.length, govLibertiesVocab.length);
+if (untestedLiberty.length) console.log('  never tested   : %s', untestedLiberty.join(', '));
 
 console.log('\nAPUSH questions  : %d', apushBank.length);
 console.log('AP Gov questions : %d', apGovBank.length);

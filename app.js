@@ -6,8 +6,9 @@
    shared - selection, timing, scoring, feedback, results and multiplayer.
 
    Question banks live in questions.js (APUSH / AP Gov), gov-branches-data.js
-   (AP Gov 2.3-2.8), gov-policy-data.js (AP Gov 2.9-2.15) and affix-data.js
-   (Prefix & Suffix). No question text appears in this file.
+   (AP Gov 2.3-2.8), gov-policy-data.js (AP Gov 2.9-2.15), gov-liberties-data.js
+   (AP Gov 3.1-3.8) and affix-data.js (Prefix & Suffix). No question text
+   appears in this file.
    ========================================================================= */
 
 'use strict';
@@ -33,6 +34,10 @@
   const AREA_LABELS = {
     courts: 'The Supreme Court', checks: 'Checks on the Courts',
     bureaucracy: 'The Bureaucracy', oversight: 'Oversight', mixed: 'Cross-Cutting'
+  };
+  const LIBERTY_AREA_LABELS = {
+    rights: 'The Bill of Rights', religion: 'Freedom of Religion', expression: 'Speech and Press',
+    safety: 'Liberty and Safety', dueprocess: 'Due Process', mixed: 'Cross-Cutting'
   };
   const DIFFICULTY_LABELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
   const DIFFICULTY_ORDER = { easy: 0, medium: 1, hard: 2 };
@@ -84,6 +89,15 @@
     ['bureaucracy', 'The Bureaucracy', 'Topics 2.12-2.13: structure, the merit system, and delegated rule making'],
     ['oversight', 'Oversight', 'Topics 2.14-2.15: congressional and presidential control, and the courts'],
     ['mixed', 'Cross-Cutting', 'Items that turn on the courts and the bureaucracy at the same time']
+  ];
+
+  const GOV_LIBERTIES_AREAS = [
+    ['rights', 'The Bill of Rights', 'Topic 3.1: why the Bill of Rights exists, and whom it originally restrained'],
+    ['religion', 'Freedom of Religion', 'Topic 3.2: the establishment and free exercise clauses'],
+    ['expression', 'Speech and Press', 'Topics 3.3-3.4: symbolic speech, dangerous speech, obscenity, libel and prior restraint'],
+    ['safety', 'Liberty and Safety', 'Topics 3.5-3.6: the Second, Fourth and Eighth Amendments'],
+    ['dueprocess', 'Due Process', 'Topics 3.7-3.8: selective incorporation and the rights of the accused'],
+    ['mixed', 'Cross-Cutting', 'Items that compare cases or ideas from several topics at once']
   ];
 
   const SUBJECTS = {
@@ -266,6 +280,51 @@
         ELIM2: 'Rule of Four', AUTOCORRECT: 'Chevron Deference', DOUBLE: 'Appropriations',
         BLOCK: 'Whistleblower Act', GAMBLE: 'Nuclear Option', NUKE: 'Borked',
         STEAL: 'Power of the Purse', ZERO: 'Legislative Veto'
+      }
+    },
+
+    APGOV_LIBERTIES: {
+      title: 'AP Gov: 3.1-3.8',
+      blurb: 'The Bill of Rights, the First and Second Amendments, and how far the Court lets liberty bend for public order.',
+      format: 'tagged',
+      unitLabel: 'Area',
+      getBank: () => (typeof govLibertiesBank === 'undefined' ? null : govLibertiesBank),
+      emptyMessage: 'Select at least one area and one difficulty.',
+      // Round-robin across the five areas so a session never turns into
+      // twenty questions about the First Amendment.
+      groupBy: (q) => q.area || 'mixed',
+      spreadBy: (q) => q.questionType,
+      badges: (q) => [
+        { text: DIFFICULTY_LABELS[q.difficulty] || q.difficulty, className: 'level-' + q.difficulty },
+        { text: LIBERTY_AREA_LABELS[q.area] || q.area },
+        { text: 'Topic ' + q.topic }
+      ],
+      howToPlayNote: 'Every topic in this unit is the same tug-of-war: an individual claims a liberty, and the government claims the public interest. Most questions hang on a must-know case, so knowing who won is only half of it; know why. Questions get harder as a session goes on, and many drop a case’s reasoning into a new situation.',
+      brief: [
+        'Every question is multiple choice with one clearly best answer, drawn from AMSCO Topics 3.1 through 3.8.',
+        'Pick the areas you want to study and how hard you want the questions. Cross-Cutting items ask you to line up cases from different topics, such as which amendment each one applied to the states.',
+        'Distractors are usually real cases and clauses from the same unit, so read carefully: establishment is not free exercise, prior restraint is not libel, and Heller is not McDonald. The feedback after each question explains why.'
+      ],
+      filterGroups: [
+        {
+          id: 'area',
+          label: 'Select Areas',
+          field: 'area',
+          selectAll: true,
+          options: GOV_LIBERTIES_AREAS.map(([value, label, title]) => ({
+            value: value, label: label, title: title
+          }))
+        },
+        difficultyFilter({
+          easy: 'Name a right, a clause, or what a case decided',
+          medium: 'Apply a ruling or tell two similar cases apart',
+          hard: 'Reason through an opinion, a test, or a new scenario'
+        })
+      ],
+      powerups: {
+        ELIM2: 'Exclusionary Rule', AUTOCORRECT: 'Right to Counsel', DOUBLE: 'Double Jeopardy',
+        BLOCK: 'Prior Restraint', GAMBLE: 'Probable Cause', NUKE: 'Cruel and Unusual',
+        STEAL: 'Search and Seizure', ZERO: 'Gag Law'
       }
     }
   };
