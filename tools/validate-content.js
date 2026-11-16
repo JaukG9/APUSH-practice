@@ -4,7 +4,7 @@
  *   node tools/validate-content.js
  *
  * Run this after editing affix-data.js, gov-branches-data.js, gov-policy-data.js,
- * gov-liberties-data.js or questions.js.
+ * gov-liberties-data.js, gov-ideology-data.js or questions.js.
  * It checks the things that quietly break gameplay - a missing option, an
  * answer that is not among the options, a duplicate question - and prints a
  * coverage report so you can see which topics and difficulties are thin
@@ -18,6 +18,7 @@ const { affixVocab, affixBank } = require(path.join(root, 'affix-data.js'));
 const { govBranchesVocab, govBranchesBank } = require(path.join(root, 'gov-branches-data.js'));
 const { govPolicyVocab, govPolicyBank } = require(path.join(root, 'gov-policy-data.js'));
 const { govLibertiesVocab, govLibertiesBank } = require(path.join(root, 'gov-liberties-data.js'));
+const { govIdeologyVocab, govIdeologyBank } = require(path.join(root, 'gov-ideology-data.js'));
 const { apushBank, apGovBank } = require(path.join(root, 'questions.js'));
 
 const errors = [];
@@ -93,6 +94,26 @@ govLibertiesVocab.forEach((entry, i) => {
   const where = `govLibertiesVocab[${i}] (${entry.term})`;
   if (!Number.isInteger(entry.page) || entry.page < 260 || entry.page > 328) {
     fail(`${where}: page ${entry.page} is outside AMSCO pages 260-328`);
+  }
+  if (typeof entry.keyTerm !== 'boolean') fail(`${where}: keyTerm must be true or false`);
+});
+
+const IDEOLOGY_AREAS = ['values', 'socialization', 'polling', 'ideology', 'economic', 'social'];
+const IDEOLOGY_TOPICS = ['4.1', '4.2', '4.3', '4.4', '4.5', '4.6', '4.7', '4.8', '4.9', '4.10'];
+const ideologyKeys = checkVocab('govIdeologyVocab', govIdeologyVocab, {
+  keyField: 'term',
+  required: ['term', 'display', 'topic', 'meaning'],
+  enums: { area: IDEOLOGY_AREAS, topic: IDEOLOGY_TOPICS },
+  key: (entry) => entry.term
+});
+
+// Every 4.1-4.10 entry cites the AMSCO page it comes from (Unit 4, Chapters
+// 12-14, runs pages 392-490) and says whether it is one of the book's own key
+// terms.
+govIdeologyVocab.forEach((entry, i) => {
+  const where = `govIdeologyVocab[${i}] (${entry.term})`;
+  if (!Number.isInteger(entry.page) || entry.page < 392 || entry.page > 490) {
+    fail(`${where}: page ${entry.page} is outside AMSCO pages 392-490`);
   }
   if (typeof entry.keyTerm !== 'boolean') fail(`${where}: keyTerm must be true or false`);
 });
@@ -202,6 +223,18 @@ const libertyCoverage = checkObjectBank('govLibertiesBank', govLibertiesBank, {
   group: (q) => q.area
 });
 
+const ideologyCoverage = checkObjectBank('govIdeologyBank', govIdeologyBank, {
+  vocab: ideologyKeys,
+  required: ['question', 'answer', 'explanation', 'questionType', 'difficulty', 'term', 'area', 'topic'],
+  enums: {
+    area: IDEOLOGY_AREAS.concat('mixed'),
+    topic: IDEOLOGY_TOPICS,
+    questionType: ['definition', 'application', 'scenario', 'compare', 'document', 'case', 'process']
+  },
+  vocabKey: (q) => (q.term === 'mixed' ? null : q.term),
+  group: (q) => q.area
+});
+
 // Every filterable combination needs questions or that filter picks up an
 // empty pool and the setup screen refuses to start.
 ['congress', 'presidency', 'judiciary', 'mixed'].forEach((branch) => {
@@ -225,10 +258,17 @@ LIBERTY_AREAS.concat('mixed').forEach((area) => {
   });
 });
 
+IDEOLOGY_AREAS.concat('mixed').forEach((area) => {
+  ['easy', 'medium', 'hard'].forEach((difficulty) => {
+    const n = govIdeologyBank.filter((q) => q.area === area && q.difficulty === difficulty).length;
+    if (!n) warn(`govIdeologyBank: no ${difficulty} questions for "${area}"`);
+  });
+});
+
 // A bank where the right answer is reliably the longest option is a bank a
 // player can beat without reading it. Random would be about 25 percent.
 [['govBranchesBank', govBranchesBank], ['govPolicyBank', govPolicyBank],
-  ['govLibertiesBank', govLibertiesBank], ['affixBank', affixBank]]
+  ['govLibertiesBank', govLibertiesBank], ['govIdeologyBank', govIdeologyBank], ['affixBank', affixBank]]
   .forEach(([name, bank]) => {
     const longest = bank.filter((q) => {
       if (!Array.isArray(q.options) || !q.options.includes(q.answer)) return false;
@@ -253,7 +293,8 @@ function similarity(a, b) {
   a.forEach((w) => { if (b.has(w)) shared++; });
   return shared / ((a.size + b.size - shared) || 1);
 }
-[['govBranchesBank', govBranchesBank], ['govPolicyBank', govPolicyBank], ['govLibertiesBank', govLibertiesBank]]
+[['govBranchesBank', govBranchesBank], ['govPolicyBank', govPolicyBank], ['govLibertiesBank', govLibertiesBank],
+  ['govIdeologyBank', govIdeologyBank]]
   .forEach(([name, bank]) => {
     const words = bank.map((q) => contentWords(q.question + ' ' + q.answer));
     for (let i = 0; i < bank.length; i++) {
@@ -348,6 +389,34 @@ console.log('  by area        : %s', groupCounts(libertyCoverage));
 console.log('  key terms      : %d of %d tested', keyTerms.length - untestedKeyTerms.length, keyTerms.length);
 console.log('  terms tested   : %d of %d', govLibertiesVocab.length - untestedLiberty.length, govLibertiesVocab.length);
 if (untestedLiberty.length) console.log('  never tested   : %s', untestedLiberty.join(', '));
+
+const testedIdeology = new Set(govIdeologyBank.map((q) => q.term));
+const untestedIdeology = govIdeologyVocab
+  .filter((v) => !testedIdeology.has(v.term))
+  .map((v) => v.display);
+const ideologyKeyTerms = govIdeologyVocab.filter((v) => v.keyTerm);
+const untestedIdeologyKeys = ideologyKeyTerms.filter((v) => !testedIdeology.has(v.term));
+// As with 3.1-3.8, AMSCO's own key-term lists are the floor for this mode.
+untestedIdeologyKeys.forEach((v) => fail(`govIdeologyBank: AMSCO key term "${v.display}" has no question`));
+
+// The engine shuffles options at runtime, but the stored answer position is
+// kept even too, so the source never trains a reader to expect one letter.
+const ideologySlots = [0, 0, 0, 0];
+govIdeologyBank.forEach((q) => { if (Array.isArray(q.options)) ideologySlots[q.options.indexOf(q.answer)]++; });
+const slotSpread = Math.max.apply(null, ideologySlots) - Math.min.apply(null, ideologySlots);
+if (slotSpread > Math.ceil(govIdeologyBank.length * 0.05)) {
+  warn(`govIdeologyBank: stored answer positions are uneven (A-D: ${ideologySlots.join('/')})`);
+}
+
+console.log('\nAP Gov 4.1-4.10 vocabulary : %d terms (%d AMSCO key terms)', govIdeologyVocab.length, ideologyKeyTerms.length);
+console.log('AP Gov 4.1-4.10 questions  : %d', govIdeologyBank.length);
+console.log('  by difficulty  : %s', JSON.stringify(ideologyCoverage.byDifficulty));
+console.log('  by type        : %s', JSON.stringify(ideologyCoverage.byType));
+console.log('  by area        : %s', groupCounts(ideologyCoverage));
+console.log('  answer slots   : A %d, B %d, C %d, D %d', ideologySlots[0], ideologySlots[1], ideologySlots[2], ideologySlots[3]);
+console.log('  key terms      : %d of %d tested', ideologyKeyTerms.length - untestedIdeologyKeys.length, ideologyKeyTerms.length);
+console.log('  terms tested   : %d of %d', govIdeologyVocab.length - untestedIdeology.length, govIdeologyVocab.length);
+if (untestedIdeology.length) console.log('  never tested   : %s', untestedIdeology.join(', '));
 
 console.log('\nAPUSH questions  : %d', apushBank.length);
 console.log('AP Gov questions : %d', apGovBank.length);

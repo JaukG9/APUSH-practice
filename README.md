@@ -1,6 +1,6 @@
 # [AP Practice](https://jaukg9.github.io/APUSH-practice/practice.html)
 
-Browser-based practice quizzes with six subjects, playable solo or as a
+Browser-based practice quizzes with seven subjects, playable solo or as a
 multiplayer match. No build step and no dependencies — open `practice.html`.
 
 ## Modes
@@ -12,6 +12,7 @@ multiplayer match. No build step and no dependencies — open `practice.html`.
 | AP Gov: 2.3-2.8 | 98 questions over 56 key terms | Institution and difficulty |
 | AP Gov: 2.9-2.15 | 165 questions over 90 key terms | Area and difficulty |
 | AP Gov: 3.1-3.8 | 162 questions over 78 terms and cases | Area and difficulty |
+| AP Gov: 4.1-4.10 | 213 questions over 124 terms, laws and cases | Area and difficulty |
 | Prefix & Suffix Practice | 115 questions over 62 affixes | Difficulty and prefix/suffix focus |
 
 **Single player** runs at your own pace: answer, read the feedback, continue.
@@ -23,7 +24,7 @@ standings board and a powerup shop between rounds. Players can join a match
 already in progress, and a dropped connection reconnects into the same seat
 with its score intact.
 
-Scoring is shared across all six subjects. With the timer on, a correct answer
+Scoring is shared across all seven subjects. With the timer on, a correct answer
 is worth 60–100 points depending on speed; with it off, every correct answer is
 worth 100. Streaks count consecutive correct answers, and your best streak per
 subject is remembered locally.
@@ -40,6 +41,7 @@ questions.js           APUSH + AP Gov banks
 gov-branches-data.js   AP Gov 2.3-2.8 key terms and question bank
 gov-policy-data.js     AP Gov 2.9-2.15 key terms and question bank
 gov-liberties-data.js  AP Gov 3.1-3.8 key terms and question bank
+gov-ideology-data.js   AP Gov 4.1-4.10 key terms and question bank
 affix-data.js          prefix/suffix vocabulary and question bank
 prefix_suffix_vocabulary.csv   source of truth for the affix vocabulary
 tools/validate-content.js      content checker
@@ -214,6 +216,44 @@ if any AMSCO key term has no question. Edit that list first if the source
 changes.
 
 Ids run `gl001` upward. Keep counting up, as with the other banks.
+
+**AP Gov: 4.1-4.10** — append an object to `govIdeologyBank` in
+`gov-ideology-data.js`. Same shape as the 3.1-3.8 bank.
+
+```js
+{
+  id: "gi214", term: "push polling", area: "polling", topic: "4.5",
+  questionType: "scenario", difficulty: "medium",
+  question: "A recorded caller asks whether you would still back a candidate ...",
+  options: ["...", "push polling, which is campaigning disguised as research", "...", "..."],
+  answer: "push polling, which is campaigning disguised as research",
+  explanation: "A real poll asks neutral questions to measure opinion ..."
+}
+```
+
+- `area` is `values` (Topic 4.1, political culture and the core values),
+  `socialization` (Topics 4.2–4.4, socialization, generations and events),
+  `polling` (Topics 4.5–4.6, measuring and evaluating public opinion),
+  `ideology` (Topics 4.7–4.8, party ideologies and policy making),
+  `economic` (Topic 4.9, fiscal and monetary policy, taxes and trade),
+  `social` (Topic 4.10, the safety net, labor and privacy), or `mixed` for
+  items that connect several topics. It drives the Area filter, and a session
+  is drawn round-robin across areas.
+- `topic` must be one of `4.1` through `4.10`; `difficulty`, `questionType` and
+  `term` work as in the other AP Gov banks. `term` must match an entry in
+  `govIdeologyVocab`, or be `mixed`.
+- The engine shuffles options, but this bank also keeps the stored answer
+  position spread evenly across A–D and avoids making the answer the longest
+  option; the validator reports the A–D split and warns if it drifts.
+
+`govIdeologyVocab` is taken from AMSCO *United States Government & Politics,
+AP Edition* (2022), pages 392–490 — Unit 4: Chapter 12 (Topics 4.1–4.4),
+Chapter 13 (Topics 4.5–4.6) and Chapter 14 (Topics 4.7–4.10). As in the
+3.1-3.8 list, each entry records its book page and whether it is one of
+AMSCO's "Key Terms and Names" (`keyTerm: true`); the validator fails if any
+key term has no question.
+
+Ids run `gi001` upward. Keep counting up, as with the other banks.
 
 **Prefix & Suffix** — append an object to `affixBank` in `affix-data.js`.
 
