@@ -7,8 +7,8 @@
 
    Question banks live in questions.js (APUSH / AP Gov), gov-branches-data.js
    (AP Gov 2.3-2.8), gov-policy-data.js (AP Gov 2.9-2.15), gov-liberties-data.js
-   (AP Gov 3.1-3.8) and affix-data.js (Prefix & Suffix). No question text
-   appears in this file.
+   (AP Gov 3.1-3.8), gov-ideology-data.js (AP Gov 4.1-4.10) and affix-data.js
+   (Prefix & Suffix). No question text appears in this file.
    ========================================================================= */
 
 'use strict';
@@ -38,6 +38,11 @@
   const LIBERTY_AREA_LABELS = {
     rights: 'The Bill of Rights', religion: 'Freedom of Religion', expression: 'Speech and Press',
     safety: 'Liberty and Safety', dueprocess: 'Due Process', mixed: 'Cross-Cutting'
+  };
+  const IDEOLOGY_AREA_LABELS = {
+    values: 'Core Values', socialization: 'Socialization', polling: 'Public Opinion',
+    ideology: 'Party Ideologies', economic: 'Economic Policy', social: 'Social Policy',
+    mixed: 'Cross-Cutting'
   };
   const DIFFICULTY_LABELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
   const DIFFICULTY_ORDER = { easy: 0, medium: 1, hard: 2 };
@@ -98,6 +103,16 @@
     ['safety', 'Liberty and Safety', 'Topics 3.5-3.6: the Second, Fourth and Eighth Amendments'],
     ['dueprocess', 'Due Process', 'Topics 3.7-3.8: selective incorporation and the rights of the accused'],
     ['mixed', 'Cross-Cutting', 'Items that compare cases or ideas from several topics at once']
+  ];
+
+  const GOV_IDEOLOGY_AREAS = [
+    ['values', 'Core Values', 'Topic 4.1: political culture, liberals and conservatives, and the five core values'],
+    ['socialization', 'Socialization', 'Topics 4.2-4.4: political socialization, generations, life stages and major events'],
+    ['polling', 'Public Opinion', 'Topics 4.5-4.6: how scientific polls work, and how to judge the claims built on them'],
+    ['ideology', 'Party Ideologies', 'Topics 4.7-4.8: liberal, conservative, libertarian, populist and progressive views, and how policy is made'],
+    ['economic', 'Economic Policy', 'Topic 4.9: fiscal and monetary policy, taxes, the Fed and trade'],
+    ['social', 'Social Policy', 'Topic 4.10: the safety net, entitlements, labor, privacy and education'],
+    ['mixed', 'Cross-Cutting', 'Items that connect ideas from several Unit 4 topics at once']
   ];
 
   const SUBJECTS = {
@@ -325,6 +340,51 @@
         ELIM2: 'Exclusionary Rule', AUTOCORRECT: 'Right to Counsel', DOUBLE: 'Double Jeopardy',
         BLOCK: 'Prior Restraint', GAMBLE: 'Probable Cause', NUKE: 'Cruel and Unusual',
         STEAL: 'Search and Seizure', ZERO: 'Gag Law'
+      }
+    },
+
+    APGOV_IDEOLOGY: {
+      title: 'AP Gov: 4.1-4.10',
+      blurb: 'Where Americans’ political beliefs come from, how polls measure them, and how ideology shapes economic and social policy.',
+      format: 'tagged',
+      unitLabel: 'Area',
+      getBank: () => (typeof govIdeologyBank === 'undefined' ? null : govIdeologyBank),
+      emptyMessage: 'Select at least one area and one difficulty.',
+      // Round-robin across the six areas so a session never turns into
+      // twenty questions about polling.
+      groupBy: (q) => q.area || 'mixed',
+      spreadBy: (q) => q.questionType,
+      badges: (q) => [
+        { text: DIFFICULTY_LABELS[q.difficulty] || q.difficulty, className: 'level-' + q.difficulty },
+        { text: IDEOLOGY_AREA_LABELS[q.area] || q.area },
+        { text: 'Topic ' + q.topic }
+      ],
+      howToPlayNote: 'This unit follows political beliefs from where they start to where they end up: the core values most Americans share, the family, generation and events that shape each person’s views, the polls that try to measure them, and the liberal, conservative and libertarian ideas that compete to turn them into economic and social policy. Questions get harder as a session goes on, and many ask you to read a poll, a quote or a platform rather than recall a definition.',
+      brief: [
+        'Every question is multiple choice with one clearly best answer, drawn from AMSCO Topics 4.1 through 4.10.',
+        'Pick the areas you want to study and how hard you want the questions. Cross-Cutting items ask you to connect topics, such as matching an ideology to the economic theory behind it.',
+        'Distractors are usually real terms from the same unit, so read carefully: a benchmark poll is not a tracking poll, a valence issue is not a wedge issue, and fiscal policy is not monetary policy. The feedback after each question explains why.'
+      ],
+      filterGroups: [
+        {
+          id: 'area',
+          label: 'Select Areas',
+          field: 'area',
+          selectAll: true,
+          options: GOV_IDEOLOGY_AREAS.map(([value, label, title]) => ({
+            value: value, label: label, title: title
+          }))
+        },
+        difficultyFilter({
+          easy: 'Name a term, a value, or what a policy does',
+          medium: 'Apply a concept or tell two similar ones apart',
+          hard: 'Reason through poll data, a quote, or a new scenario'
+        })
+      ],
+      powerups: {
+        ELIM2: 'Margin of Error', AUTOCORRECT: 'Weighting', DOUBLE: 'Multiplier Effect',
+        BLOCK: 'Limited Government', GAMBLE: 'Undecided Voters', NUKE: 'Push Poll',
+        STEAL: 'Progressive Tax', ZERO: 'Third Rail'
       }
     }
   };
